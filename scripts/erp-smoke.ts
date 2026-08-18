@@ -418,6 +418,50 @@ ORDER BY i."ItemCode"`;
   }
   check("기말잔고 = OITW.OnHand (취소 역분개 포함)", sbBad === 0, `불일치 ${sbBad}종`);
 
+  // 생성+취소 왕복은 '어느 기간컷에서도' no-op 이어야 한다.
+  // 역분개 전기일을 취소일(today)로 박으면 미래 전기일 문서를 오늘 취소했을 때
+  // 원전기(미래)는 기간컷 밖으로 잘리고 역분개(오늘)만 계상돼 유령재고가 생긴다.
+  const sbCut = `${sbY}-${sbPad(sbEndM)}-${sbPad(sbLastDay(sbY, sbEndM))}`;
+  const closingOf = async (itemCode: string): Promise<number> => {
+    const r = await query<{ Q: number }>(
+      `SELECT COALESCE(SUM("InQty" - "OutQty"), 0) AS "Q" FROM "OINM" WHERE "ItemCode" = ? AND "DocDate" <= ?`,
+      [itemCode, sbCut],
+    );
+    return Number(r[0]?.Q ?? 0);
+  };
+  const openLine = (
+    await query<{ DocEntry: number; LineNum: number; ItemCode: string; OpenQty: number; CardCode: string }>(
+      `SELECT l."DocEntry", l."LineNum", l."ItemCode", l."OpenQty", h."CardCode"
+         FROM "RDR1" l JOIN "ORDR" h ON h."DocEntry" = l."DocEntry"
+        WHERE l."LineStatus" = 'O' AND l."OpenQty" > 0 AND h."CANCELED" = 'N' AND h."DocStatus" = 'O'
+        ORDER BY l."DocEntry" LIMIT 1`,
+    )
+  )[0];
+  if (!openLine) {
+    check("미래전기 왕복 회귀 케이스 확보", false, "열린 판매오더 라인 없음");
+  } else {
+    const before = await closingOf(openLine.ItemCode);
+    const dn = engineCreateFromBase(
+      "DeliveryNotes",
+      { CardCode: openLine.CardCode, DocDate: `${sbY + 1}-06-30` }, // 기간컷 밖(미래) 전기일
+      [
+        {
+          BaseType: 17,
+          BaseEntry: openLine.DocEntry,
+          BaseLine: openLine.LineNum,
+          Quantity: Math.min(1, Number(openLine.OpenQty)),
+        },
+      ],
+    );
+    engineCancel("DeliveryNotes", dn.DocEntry);
+    const after = await closingOf(openLine.ItemCode);
+    check(
+      "미래전기 납품 생성→취소가 과거 기간컷에 무영향",
+      Math.abs(after - before) < 0.001,
+      `${openLine.ItemCode} ${before} → ${after}`,
+    );
+  }
+
   getDb();
   closeDb();
   console.log(failed === 0 ? "\n✅ 전체 통과\n" : `\n❌ 실패 ${failed}건\n`);

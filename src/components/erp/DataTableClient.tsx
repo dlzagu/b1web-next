@@ -138,39 +138,53 @@ export default function DataTableClient({
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
   const [chooserOpen, setChooserOpen] = useState(false);
   const chooserRef = useRef<HTMLDivElement>(null);
-  // 하이드레이션 완료 플래그를 state 로(ref 아님) — 저장 effect 가 이 커밋 이후에만 돌아
-  // 마운트 시 기본값으로 localStorage 를 덮어쓰는 레이스를 막는다(Strict Mode 이중실행 포함).
-  const [hydrated, setHydrated] = useState(false);
+  // 뷰 상태(표시컬럼·순서·너비)가 어느 화면·어느 컬럼구성에 속한 것인지 나타내는 토큰.
+  // storageKey 가 바뀌거나(탭 전환 등) 컬럼 집합 자체가 바뀌면(피벗 리포트의 기간 컬럼 수 변화)
+  // 이전 상태를 이월하면 안 된다 — 소프트 내비게이션에서는 이 컴포넌트가 언마운트되지 않는다.
+  const viewToken = `${storageKey ?? ""}|${headers.map((h) => h.key).join(",")}`;
+  // 하이드레이션 완료 표시를 토큰으로 둔다(불리언 아님) — 저장 effect 가 '이번 토큰으로 로드된
+  // 상태'일 때만 돌아, 키가 바뀐 커밋에서 이전 탭의 상태를 새 키에 써버리는 오염을 막는다.
+  const [hydratedToken, setHydratedToken] = useState<string | null>(null);
 
   // 사용자별 그리드 뷰(표시컬럼·순서·너비) localStorage 영속화 — storageKey 있을 때만. DB 저장 없음, 캐시 초기화 전까지 유지.
   useEffect(() => {
+    // 항상 기본값을 만든 뒤 저장분을 얹는다. 저장분이 없을 때 이전 화면/탭의 상태가 남아
+    // 그대로 새 키에 저장되는 오염(컬럼순서·고정열·합계라벨 어긋남)을 막는다.
+    let visibility: VisibilityState = Object.fromEntries(
+      headers.filter((h) => h.defaultHidden).map((h) => [h.key, false]),
+    );
+    let order: string[] = headers.map((h) => h.key);
+    let sizing: ColumnSizingState = {};
     if (storageKey) {
       try {
         const raw = localStorage.getItem(storageKey);
         if (raw) {
           const p = JSON.parse(raw) as { visibility?: VisibilityState; order?: string[]; sizing?: ColumnSizingState };
-          if (p.visibility) setColumnVisibility(p.visibility);
-          if (p.sizing) setColumnSizing(p.sizing);
+          if (p.visibility) visibility = p.visibility;
+          if (p.sizing) sizing = p.sizing;
           if (p.order?.length) {
             // 저장된 순서 + 이후 추가된 새 컬럼은 뒤에 붙임(스키마 변화에 견고)
             const keys = headers.map((h) => h.key);
             const known = p.order.filter((k) => keys.includes(k));
             const missing = keys.filter((k) => !known.includes(k));
-            setColumnOrder([...known, ...missing]);
+            order = [...known, ...missing];
           }
         }
       } catch {
         /* 손상된 캐시 무시 */
       }
     }
-    setHydrated(true);
-    // headers 는 매 렌더 새 배열이라 deps 제외(로드는 storageKey 기준 1회)
+    setColumnVisibility(visibility);
+    setColumnOrder(order);
+    setColumnSizing(sizing);
+    setHydratedToken(viewToken);
+    // headers·storageKey 는 viewToken 에 압축돼 있다(매 렌더 새 배열이라 deps 직접 사용 불가)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
+  }, [viewToken]);
 
-  // 변경분 저장 (하이드레이션 완료 후에만 — 기본값으로 덮어쓰기 방지)
+  // 변경분 저장 (이번 토큰으로 하이드레이션된 뒤에만 — 기본값·이전 탭 상태로 덮어쓰기 방지)
   useEffect(() => {
-    if (!storageKey || !hydrated) return;
+    if (!storageKey || hydratedToken !== viewToken) return;
     try {
       localStorage.setItem(
         storageKey,
@@ -179,7 +193,7 @@ export default function DataTableClient({
     } catch {
       /* 용량 초과 등 무시 */
     }
-  }, [storageKey, columnVisibility, columnOrder, columnSizing, hydrated]);
+  }, [storageKey, viewToken, hydratedToken, columnVisibility, columnOrder, columnSizing]);
 
   // 컬럼 선택 드롭다운 바깥 클릭 시 닫기
   useEffect(() => {
@@ -382,7 +396,10 @@ export default function DataTableClient({
                           className="flex cursor-pointer items-center gap-2 rounded-field px-2 py-1.5 text-[13px] hover:bg-surface-2"
                         >
                           <input type="checkbox" checked={on} onChange={() => toggleCol(h.key)} className="accent-primary" />
-                          <span className="truncate text-foreground">{h.header}</span>
+                          {/* 피벗 그리드는 헤더가 '입고/출고/재고' 로 반복되므로 그룹(기간) 라벨을 앞에 붙여 구분한다 */}
+                          <span className="truncate text-foreground">
+                            {h.group ? `${h.group} ${h.header}` : h.header}
+                          </span>
                         </label>
                       );
                     })}

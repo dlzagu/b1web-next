@@ -498,9 +498,17 @@ function seedDocuments(db: DemoDb): void {
     [67, "창고간 이전", 0, 20, "W1000"],
     [67, "창고간 이전", 20, 0, "W2000"],
   ];
+  // 🔴 창고간 이전은 '한 건'이라 출고 다리와 입고 다리가 **같은 품목·같은 날짜**여야 한다.
+  //    행마다 품목·날짜를 따로 뽑으면 전 창고를 합산하는 수불부(W5071)에서 한쪽 품목은
+  //    수량이 사라지고 다른 품목은 무에서 생긴 것처럼 보인다(총계 대사는 통과해 안 잡힌다).
+  //    ⚠️ 난수 소비 횟수를 유지해야 다른 시드 데이터가 밀리지 않으므로, 5행 모두 뽑은 뒤 덮어쓴다.
+  const picks = misc.map((_, i) => ({
+    item: ITEMS[(i * 5) % ITEMS.length],
+    d: ymd(dayIn(int(0, 1))),
+  }));
+  picks[4] = picks[3]; // 입고 다리 ← 출고 다리 (창고만 다름)
   misc.forEach(([tt, memo, inQty, outQty, whs], i) => {
-    const item = ITEMS[(i * 5) % ITEMS.length];
-    const d = ymd(dayIn(int(0, 1)));
+    const { item, d } = picks[i];
     db.prepare(
       `INSERT INTO "OINM" ("ItemCode","DocDate","DocTime","TransType","InQty","OutQty","Warehouse","CreatedBy","DocLineNum","Comments","OcrCode")
        VALUES (?,?,1100,?,?,?,?,?,0,?,'210001')`,

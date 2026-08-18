@@ -819,7 +819,12 @@ export function engineCancel(entity: string, docEntry: number): void {
           transType: def.objType,
           docEntry,
           lineNum: Number(l.LineNum),
-          docDate: today(),
+          // 🔴 역분개 전기일 = '취소일'이 아니라 **원문서 전기일**.
+          //    취소일로 박으면 원전기와 역분개가 서로 다른 기간에 떨어져, 기간을 잘라 보는
+          //    리포트(수불부 W5071)에서 한쪽 다리만 계상된다 — 생성+취소 왕복이 no-op 이
+          //    아니게 되어 유령재고/과소재고가 생긴다(미래 전기일 문서를 오늘 취소한 경우).
+          //    같은 날짜로 넣으면 어느 기간컷에서도 두 다리가 같이 잡혀 항상 상쇄된다.
+          docDate: String(head.DocDate ?? today()),
           cardCode: String(head.CardCode ?? ""),
           cardName: String(head.CardName ?? ""),
           comments: "취소 역분개",
