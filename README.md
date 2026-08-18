@@ -31,7 +31,7 @@ npm run dev        # http://localhost:3000
 
 ```bash
 npm run verify     # lint → typecheck → smoke (완료 판정 기준)
-npm run smoke      # 데모 ERP 스모크 46항목 (아래 '검증' 참조)
+npm run smoke      # 데모 ERP 스모크 47항목 (아래 '검증' 참조)
 npm run db:reset   # 데모 DB 삭제 → 다음 실행 때 재시드
 npm run shots      # README 스크린샷 재생성 (설치된 Chrome/Edge 사용, dev 서버 필요)
 ```
@@ -119,7 +119,7 @@ ERP는 화면이 그려지는 것과 **숫자가 맞는 것이 별개**입니다
 npm run verify     # lint → typecheck → smoke 46항목
 ```
 
-`npm run smoke`(`scripts/erp-smoke.ts`)는 **메모리 DB에 새로 시드**한 뒤 9개 영역 46항목을 검사합니다.
+`npm run smoke`(`scripts/erp-smoke.ts`)는 **메모리 DB에 새로 시드**한 뒤 9개 영역 47항목을 검사합니다.
 
 | 영역 | 무엇을 지키나 |
 |---|---|
@@ -145,7 +145,7 @@ better-sqlite3 · bcryptjs(비밀번호 해시) + HMAC 서명 쿠키(`node:crypt
 
 ## 배포 · CI/CD
 
-- **CI** (GitHub Actions): push/PR 마다 `verify`(lint · typecheck · 스모크 46항목) → 프로덕션 `build`
+- **CI** (GitHub Actions): push/PR 마다 `verify`(lint · typecheck · 스모크 47항목) → 프로덕션 `build`
 - **CD** (Vercel Git 연동): `main` push → 프로덕션 배포, PR → 프리뷰 URL 자동 발급
 - **로컬 실행에 필요한 환경변수는 없다.** 서버리스에서는 콜드스타트 때 메모리 DB에
   시드를 즉석 생성한다(`src/lib/db/sqlite.ts`).

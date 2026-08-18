@@ -11,6 +11,7 @@
  *  6. 재고·약정 정합 (OITM.OnHand = OITW 합)
  *  7. 재고 입출고 대장 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
  *  8. 수주 진행 현황 체인 롤업 — 납품수량 두 방식 일치 · 납품−미청구=송장 · 2단 체인 유지
+ *  9. 매입 분석·재고 분포 대사 — A/P송장 취소 후 양 축 동일 제외·축간 일치 · 피벗 원본 등식
  *
  * 🔴 항상 **메모리 DB** 로 돈다 — 스모크가 만드는 검증용 문서가 로컬 데모 DB(.data)를
  *    오염시키면 대시보드 '최근 트랜잭션'에 테스트 흔적이 남는다. import 전에 env 를 세팅해야
@@ -542,26 +543,47 @@ ${CHAIN_JOINS}${where ? ` AND ${where}` : ""}`,
 
   console.log("\n[9] 매입 분석·재고 분포 대사");
   // 매입 분석 3화면은 서로 다른 축(공급처/월)으로 같은 모집단(OPCH, CANCELED='N')을 집계한다.
-  // 축이 달라도 총합은 같아야 한다 — 한쪽 WHERE 만 고치는 회귀를 잡는 교차 검증.
-  const purByVendor = await query<{ S: number }>(
-    `SELECT SUM("T") AS "S" FROM (
-       SELECT SUM(TO_DECIMAL("DocTotal",19,2)) AS "T" FROM "OPCH"
-        WHERE "CANCELED" = 'N' GROUP BY "CardCode"
-     ) x`,
-  );
-  const purByMonth = await query<{ S: number }>(
-    `SELECT SUM("T") AS "S" FROM (
-       SELECT SUM(TO_DECIMAL("DocTotal",19,2)) AS "T" FROM "OPCH"
-        WHERE "CANCELED" = 'N' GROUP BY TO_VARCHAR("DocDate",'YYYY-MM')
-     ) x`,
+  // ⚠️ '취소 전 축간 일치'만 보면 Σ(그룹합)=Σ(전체) 항등식이라 아무 회귀도 못 잡는다
+  //    (적대적 검증에서 확정된 결함). 그래서 여기서 **실제로 A/P송장 하나를 취소**하고,
+  //    취소분이 양 축에서 똑같이 빠지는지까지 본다 — CANCELED 필터가 한쪽에서 빠지는 회귀는
+  //    이 단계에서 축간 불일치로 드러난다(:memory: 시드에는 취소 매입송장이 없기 때문).
+  const axisSums = async (): Promise<{ vendor: number; month: number }> => {
+    const v = await query<{ S: number }>(
+      `SELECT SUM("T") AS "S" FROM (
+         SELECT SUM(TO_DECIMAL("DocTotal",19,2)) AS "T" FROM "OPCH"
+          WHERE "CANCELED" = 'N' GROUP BY "CardCode"
+       ) x`,
+    );
+    const m = await query<{ S: number }>(
+      `SELECT SUM("T") AS "S" FROM (
+         SELECT SUM(TO_DECIMAL("DocTotal",19,2)) AS "T" FROM "OPCH"
+          WHERE "CANCELED" = 'N' GROUP BY TO_VARCHAR("DocDate",'YYYY-MM')
+       ) x`,
+    );
+    return { vendor: Number(v[0].S ?? 0), month: Number(m[0].S ?? 0) };
+  };
+  const before = await axisSums();
+  const victim = (
+    await query<{ DocEntry: number; DocTotal: number }>(
+      `SELECT "DocEntry", "DocTotal" FROM "OPCH" WHERE "CANCELED" = 'N' ORDER BY "DocEntry" DESC LIMIT 1`,
+    )
+  )[0];
+  engineCancel("PurchaseInvoices", victim.DocEntry);
+  const after = await axisSums();
+  check(
+    "취소 A/P송장이 양 축에서 동일하게 제외",
+    Math.abs(before.vendor - after.vendor - Number(victim.DocTotal)) < 0.001 &&
+      Math.abs(before.month - after.month - Number(victim.DocTotal)) < 0.001,
+    `−${Number(victim.DocTotal).toLocaleString()}`,
   );
   check(
-    "매입 분석 축간 총합 일치 (공급처축 = 월축)",
-    Math.abs(Number(purByVendor[0].S) - Number(purByMonth[0].S)) < 0.001,
-    `${Number(purByVendor[0].S).toLocaleString()}`,
+    "매입 분석 축간 총합 일치 (취소 발생 후)",
+    Math.abs(after.vendor - after.month) < 0.001,
+    `${after.vendor.toLocaleString()}`,
   );
 
-  // 품목별 재고 분포(피벗)의 전체 합 = 창고별 재고 원본 합 — 피벗 과정에서 수량이 새지 않는가
+  // 재고 피벗 — 화면의 JS fold 는 여기서 실행되지 않으므로 이 검사는 '원본 등식'(고아 행 가드)만
+  // 본다. 화면 로직 자체의 대사는 프리뷰 실측(합계행 = OITW 총합)이 담당한다.
   const pivotTotal = await query<{ S: number }>(
     `SELECT SUM("OnHand") AS "S" FROM "OITW"`,
   );
