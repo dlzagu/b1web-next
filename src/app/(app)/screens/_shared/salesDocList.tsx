@@ -57,7 +57,9 @@ export function listStatusBadge(r: { DocStatus: string; CANCELED?: string | null
  */
 export function salesDocColumns<T extends SalesDocRow>(dueLabel = "납기일"): Column<T>[] {
   return [
-    { key: "DocNum", header: "문서번호", width: "100px", align: "right" },
+    // 문서번호는 식별자 — 천단위 콤마 금지(기본 포맷터가 숫자에 toLocaleString 을 건다).
+    // 정렬은 align:"right" 로 숫자 정렬이 그대로 유지된다(render 는 표시에만 관여).
+    { key: "DocNum", header: "문서번호", width: "100px", align: "right", render: (r) => String(r.DocNum ?? "") },
     { key: "CardCode", header: "거래처코드", width: "130px", defaultHidden: true, render: (r) => <span className="text-muted">{r.CardCode}</span> },
     { key: "CardName", header: "거래처명", render: (r) => r.CardName ?? "" },
     { key: "DocDate", header: "전기일", width: "110px", render: (r) => ymd(r.DocDate) },
@@ -286,7 +288,9 @@ export type DocLineListRow = {
  */
 export function salesDocLineColumns<T extends DocLineListRow>(partnerLabel = "거래처"): Column<T>[] {
   return [
-    { key: "DocNum", header: "문서번호", width: "100px", align: "right" },
+    // 문서번호는 식별자 — 천단위 콤마 금지(기본 포맷터가 숫자에 toLocaleString 을 건다).
+    // 정렬은 align:"right" 로 숫자 정렬이 그대로 유지된다(render 는 표시에만 관여).
+    { key: "DocNum", header: "문서번호", width: "100px", align: "right", render: (r) => String(r.DocNum ?? "") },
     { key: "CardCode", header: `${partnerLabel}코드`, width: "130px", defaultHidden: true, render: (r) => <span className="text-muted">{r.CardCode}</span> },
     { key: "CardName", header: `${partnerLabel}명`, render: (r) => r.CardName ?? "" },
     { key: "DocDate", header: "전기일", width: "110px", render: (r) => ymd(r.DocDate) },

@@ -28,6 +28,7 @@ export const MENU: MenuGroup[] = [
     items: [
       // 판매오더(ORDR) — 조회+생성/수정/취소(SL) 정식 화면. 사용자 확정: 판매오더를 실제 사용(2026-07-10).
       { id: "orders", label: "판매오더", href: "/screens/orders", ready: true, note: "ORDR 판매오더 — 조회+CUD(SL). 생성은 목록 [신규]" },
+      { id: "W3071", label: "주문진행현황", href: "/screens/W3071", ready: true, note: "ORDR→ODLN→OINV 체인 롤업 — 거래처집계 + 오더라인 상세" },
       { id: "orders-new", label: "판매오더 입력", href: "/screens/orders/new", ready: true, hidden: true, note: "목록 [신규] 버튼으로 진입(메뉴 숨김)" },
       { id: "deliveries", label: "납품 현황", href: "/screens/deliveries", ready: true, note: "ODLN" },
       { id: "invoices", label: "매출 세금계산서", href: "/screens/invoices", ready: true, note: "OINV" },

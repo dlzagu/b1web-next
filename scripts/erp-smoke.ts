@@ -10,6 +10,7 @@
  *  5. 문서흐름 왕복 — 판매오더 생성 → 부분납품 → 미결수량 검증 → 취소 가드 → 납품 취소 → 복원
  *  6. 재고·약정 정합 (OITM.OnHand = OITW 합)
  *  7. 재고 수불부(W5071) 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
+ *  8. 주문진행현황(W3071) 체인 롤업 — 납품수량 두 방식 일치 · 납품−미청구=송장 · 2단 체인 유지
  *
  * 🔴 항상 **메모리 DB** 로 돈다 — 스모크가 만드는 검증용 문서가 로컬 데모 DB(.data)를
  *    오염시키면 대시보드 '최근 트랜잭션'에 테스트 흔적이 남는다. import 전에 env 를 세팅해야
@@ -461,6 +462,51 @@ ORDER BY i."ItemCode"`;
       `${openLine.ItemCode} ${before} → ${after}`,
     );
   }
+
+  console.log("\n[8] 주문진행현황(W3071) 체인 롤업");
+  // 화면이 쓰는 두 계산 방식이 어긋나지 않는지 — 어긋나면 진행률이 조용히 틀린다.
+  //  ① 라인 기반: Quantity - OpenQty   ② 자식 합산: SUM(DLN1.Quantity) (취소 납품 제외)
+  // 취소 오더를 제외하지 않으면 ①이 '전량납품'으로 둔갑하므로(engineCancel 이 OpenQty=0),
+  // 이 대조는 화면 WHERE 의 CANCELED 필터가 빠지는 회귀를 잡아낸다.
+  const chainDiff = await query<{ N: number }>(
+    `SELECT COUNT(*) AS "N"
+       FROM "ORDR" h
+       JOIN "RDR1" l ON l."DocEntry" = h."DocEntry"
+      WHERE COALESCE(h."CANCELED", 'N') <> 'Y'
+        AND l."Quantity" - l."OpenQty" <> COALESCE((
+              SELECT SUM(d."Quantity") FROM "DLN1" d
+                JOIN "ODLN" dh ON dh."DocEntry" = d."DocEntry"
+               WHERE d."BaseType" = 17 AND d."BaseEntry" = l."DocEntry"
+                 AND d."BaseLine" = l."LineNum" AND dh."CANCELED" = 'N'), 0)`,
+  );
+  check(
+    "납품수량 두 방식 일치 (라인 OpenQty vs 자식 합산)",
+    chainDiff[0].N === 0,
+    `불일치 ${chainDiff[0].N}라인`,
+  );
+
+  // 납품했으나 아직 청구 안 된 잔량 = 납품수량 - 송장수량 (2단 체인이 제대로 이어졌는지)
+  const flow = await query<{ DQ: number; DOPEN: number; IQ: number }>(
+    `SELECT COALESCE(SUM(d."Quantity"), 0) AS "DQ", COALESCE(SUM(d."OpenQty"), 0) AS "DOPEN",
+            COALESCE((SELECT SUM(i."Quantity") FROM "INV1" i
+                        JOIN "OINV" ih ON ih."DocEntry" = i."DocEntry"
+                       WHERE i."BaseType" = 15 AND ih."CANCELED" = 'N'), 0) AS "IQ"
+       FROM "DLN1" d
+       JOIN "ODLN" dh ON dh."DocEntry" = d."DocEntry"
+      WHERE dh."CANCELED" = 'N'`,
+  );
+  const f = flow[0];
+  check(
+    "납품 − 미청구잔량 = 송장수량",
+    Math.abs(Number(f.DQ) - Number(f.DOPEN) - Number(f.IQ)) < 0.001,
+    `${f.DQ} − ${f.DOPEN} = ${f.IQ}`,
+  );
+
+  // 오더↔송장을 1단으로 이으려는 회귀 방지 — INV1 에 BaseType=17 인 행이 생기면 설계가 바뀐 것
+  const badLink = await query<{ N: number }>(
+    `SELECT COUNT(*) AS "N" FROM "INV1" WHERE "BaseType" = 17`,
+  );
+  check("송장→오더 직결 없음 (2단 체인 유지)", badLink[0].N === 0, `직결 ${badLink[0].N}라인`);
 
   getDb();
   closeDb();
