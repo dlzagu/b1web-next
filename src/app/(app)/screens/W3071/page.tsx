@@ -28,6 +28,7 @@ import {
 import { Badge } from "@/components/ui";
 import { query } from "@/lib/db/hana";
 import { getSession } from "@/lib/auth/session";
+import { CHAIN_CTE, ORDER_STAGES, STAGE_CASE_SQL, STAGE_LABELS } from "@/lib/report/orderProgress";
 
 export const dynamic = "force-dynamic";
 
@@ -66,47 +67,24 @@ function defaultTo(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** 진행단계 — 라인 기준. 원본 '조회구분'을 우리 파이프라인 단계로 대체한 것 */
-const STAGES: { value: string; label: string; where: string }[] = [
-  { value: "", label: "전체", where: "" },
-  { value: "none", label: "미착수", where: `COALESCE(v."DQTY", 0) = 0` },
-  { value: "part", label: "부분납품", where: `COALESCE(v."DQTY", 0) > 0 AND l."OpenQty" > 0` },
-  { value: "dlv", label: "납품완료·미청구", where: `l."OpenQty" = 0 AND COALESCE(n."IQTY", 0) = 0` },
-  { value: "inv", label: "청구완료", where: `COALESCE(n."IQTY", 0) > 0` },
-];
-
+/**
+ * 진행단계 배지 — 라벨·경계는 공용 계약(@/lib/report/orderProgress)에서 온다.
+ * 필터 술어와 표시 CASE 를 한 곳에 묶어두지 않으면 '청구완료로 걸렀는데 부분납품 배지가 섞이는'
+ * 자기모순이 생긴다(실제로 발생해 스모크 [8] 로 파티션 검증을 붙였다).
+ */
 function stageBadge(stage: string) {
   const variant =
-    stage === "청구완료" ? "success" : stage === "납품완료" ? "info" : stage === "부분납품" ? "warning" : "neutral";
+    stage === STAGE_LABELS.inv
+      ? "success"
+      : stage === STAGE_LABELS.invPart
+        ? "primary"
+        : stage === STAGE_LABELS.dlv
+          ? "info"
+          : stage === STAGE_LABELS.part
+            ? "warning"
+            : "neutral";
   return <Badge variant={variant}>{stage}</Badge>;
 }
-
-/**
- * 자식 롤업 CTE — 납품(DLV)·송장(INVQ)을 '오더 라인' 좌표로 접는다.
- * 두 CTE 모두 자식 헤더를 조인해 취소건을 걷어낸다(없으면 이중계상).
- */
-const CHAIN_CTE = `WITH "DLV" AS (
-  SELECT d."BaseEntry" AS "OE", d."BaseLine" AS "OL",
-         SUM(d."Quantity") AS "DQTY", SUM(d."LineTotal") AS "DAMT",
-         SUM(d."VatSum") AS "DVAT", SUM(d."GTotal") AS "DTOT",
-         MIN(dh."DocDate") AS "FIRSTDLV"
-    FROM "DLN1" d
-    JOIN "ODLN" dh ON dh."DocEntry" = d."DocEntry"
-   WHERE d."BaseType" = 17 AND dh."CANCELED" = 'N'
-   GROUP BY d."BaseEntry", d."BaseLine"
-),
-"INVQ" AS (
-  SELECT d."BaseEntry" AS "OE", d."BaseLine" AS "OL",
-         SUM(i."Quantity") AS "IQTY", SUM(i."LineTotal") AS "IAMT",
-         SUM(i."VatSum") AS "IVAT", SUM(i."GTotal") AS "ITOT"
-    FROM "INV1" i
-    JOIN "OINV" ih ON ih."DocEntry" = i."DocEntry"
-    JOIN "DLN1" d  ON d."DocEntry"  = i."BaseEntry" AND d."LineNum" = i."BaseLine"
-    JOIN "ODLN" dh ON dh."DocEntry" = d."DocEntry"
-   WHERE i."BaseType" = 15 AND d."BaseType" = 17
-     AND ih."CANCELED" = 'N' AND dh."CANCELED" = 'N'
-   GROUP BY d."BaseEntry", d."BaseLine"
-)`;
 
 export default async function W3071Page({
   searchParams,
@@ -134,7 +112,7 @@ export default async function W3071Page({
   const sItemGrp = sp.sItemGrp?.trim() ?? "";
   const sSlpCode = sp.sSlpCode?.trim() ?? "";
   const sBplId = sp.sBplId?.trim() ?? "";
-  const sStage = STAGES.some((s) => s.value === sp.sStage?.trim()) ? (sp.sStage?.trim() ?? "") : "";
+  const sStage = ORDER_STAGES.some((s) => s.value === sp.sStage?.trim()) ? (sp.sStage?.trim() ?? "") : "";
   const sel = sp.sel?.trim() ?? "";
 
   let partners: PartnerRow[] = [];
@@ -144,6 +122,7 @@ export default async function W3071Page({
   let reps: { SlpCode: number; SlpName: string }[] = [];
   let plants: { BPLId: number; BPLName: string }[] = [];
   let error: string | null = null;
+  let effSel = "";
 
   try {
     [groups, cardGroups, reps, plants] = await Promise.all([
@@ -188,7 +167,7 @@ export default async function W3071Page({
       where.push(`h."BPLId" = ?`);
       baseParams.push(Number(sBplId));
     }
-    const stageWhere = STAGES.find((s) => s.value === sStage)?.where ?? "";
+    const stageWhere = ORDER_STAGES.find((s) => s.value === sStage)?.where ?? "";
     if (stageWhere) where.push(stageWhere);
 
     const joins = `FROM "ORDR" h
@@ -208,7 +187,8 @@ SELECT h."CardCode", h."CardName", h."DocCur",
        SUM(COALESCE(v."DVAT", 0)) AS "DlvVat", SUM(COALESCE(v."DTOT", 0)) AS "DlvTot",
        SUM(COALESCE(n."IQTY", 0)) AS "InvQty", SUM(COALESCE(n."IAMT", 0)) AS "InvAmt",
        SUM(COALESCE(n."IVAT", 0)) AS "InvVat", SUM(COALESCE(n."ITOT", 0)) AS "InvTot",
-       SUM(l."OpenQty") AS "OpenQty"
+       SUM(l."OpenQty") AS "OpenQty",
+       SUM(COALESCE(v."DQTY", 0)) - SUM(COALESCE(n."IQTY", 0)) AS "UninvQty"
 ${joins}
  GROUP BY h."CardCode", h."CardName", h."DocCur"
  ORDER BY SUM(l."GTotal") DESC
@@ -216,8 +196,13 @@ ${joins}
       baseParams,
     );
 
+    // 선택 거래처 정규화 — 상단 결과에 없는 sel(거래처 필터·기간·단계를 바꿔 선택이 범위 밖으로
+    // 나간 경우, 링크를 직접 편집한 경우)은 무시한다. 그대로 두면 하단만 0건이 되고 헤딩엔
+    // 다른 거래처명이 떠서 '데이터가 있는데 없다'로 보인다.
+    effSel = partners.some((p) => p.CardCode === sel) ? sel : "";
+
     // ── 하단: 오더라인 진행 상세 (상단에서 고른 거래처로 좁힌다) ──
-    const lineWhere = sel ? `${joins} AND h."CardCode" = ?` : joins;
+    const lineWhere = effSel ? `${joins} AND h."CardCode" = ?` : joins;
     lines = await query<LineRow>(
       `${CHAIN_CTE}
 SELECT h."DocEntry", h."DocNum", h."DocDate", h."CardCode", h."CardName",
@@ -228,18 +213,16 @@ SELECT h."DocEntry", h."DocNum", h."DocDate", h."CardCode", h."CardName",
        COALESCE(n."IQTY", 0) AS "InvQty", COALESCE(n."ITOT", 0) AS "InvTot",
        TO_DECIMAL(COALESCE(v."DQTY", 0) * 100.0 / l."Quantity") AS "DlvPct",
        DAYS_BETWEEN(h."DocDate", v."FIRSTDLV") AS "LeadDays",
+       COALESCE(v."DQTY", 0) - COALESCE(n."IQTY", 0) AS "UninvQty",
        CASE WHEN l."OpenQty" > 0 AND l."ShipDate" < ? THEN 'Y' ELSE 'N' END AS "Overdue",
-       CASE WHEN COALESCE(v."DQTY", 0) = 0 THEN '미착수'
-            WHEN l."OpenQty" > 0 THEN '부분납품'
-            WHEN COALESCE(n."IQTY", 0) = 0 THEN '납품완료'
-            ELSE '청구완료' END AS "Stage"
+       ${STAGE_CASE_SQL} AS "Stage"
 ${lineWhere}
  ORDER BY h."DocDate" DESC, h."DocNum" DESC, l."LineNum"
  LIMIT ${MAX_LINES}`,
       // ⚠️ 위치 바인딩은 'SQL 텍스트에 ? 가 나오는 순서'다.
       //    납기경과 판정의 ? 는 SELECT 절에 있어 WHERE 의 기간 파라미터보다 **앞**이다.
       //    (앞뒤를 바꾸면 기간 자리에 오늘 날짜가 들어가 조용히 0건이 된다 — 실제로 밟았다)
-      [defaultTo(), ...baseParams, ...(sel ? [sel] : [])],
+      [defaultTo(), ...baseParams, ...(effSel ? [effSel] : [])],
     );
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
@@ -254,7 +237,7 @@ ${lineWhere}
       name: "sStage",
       label: "진행단계",
       kind: "select",
-      options: STAGES.map((s) => ({ value: s.value, label: s.label })),
+      options: ORDER_STAGES.map((s) => ({ value: s.value, label: s.label })),
     },
     {
       name: "sItemGrp",
@@ -322,6 +305,8 @@ ${lineWhere}
     ...stageCols("Dlv", "납품"),
     ...stageCols("Inv", "매출"),
     { key: "OpenQty", header: "미납수량", align: "right", width: "110px", total: "sum", render: (r) => num(r.OpenQty) },
+    // 납품했지만 아직 청구 안 된 수량 — 미납(아직 안 나간 것)과 다른 축이다
+    { key: "UninvQty", header: "미청구수량", align: "right", width: "120px", total: "sum", render: (r) => num(r.UninvQty) },
     {
       key: "Pct",
       header: "납품진행률",
@@ -345,6 +330,7 @@ ${lineWhere}
     { key: "DlvQty", header: "납품수량", align: "right", width: "110px", total: "sum", render: (r) => num(r.DlvQty) },
     { key: "OpenQty", header: "미납수량", align: "right", width: "110px", total: "sum", render: (r) => num(r.OpenQty) },
     { key: "InvQty", header: "송장수량", align: "right", width: "110px", total: "sum", render: (r) => num(r.InvQty) },
+    { key: "UninvQty", header: "미청구수량", align: "right", width: "120px", total: "sum", render: (r) => num(r.UninvQty) },
     { key: "DlvPct", header: "납품진행률", align: "right", width: "110px", render: (r) => pct(r.DlvPct) },
     { key: "OrdTot", header: "주문총액", align: "right", width: "140px", total: "sum", defaultHidden: true, render: (r) => money(r.OrdTot) },
     { key: "InvTot", header: "청구총액", align: "right", width: "140px", total: "sum", defaultHidden: true, render: (r) => money(r.InvTot) },
@@ -367,14 +353,14 @@ ${lineWhere}
     },
   ];
 
-  const selName = sel ? String(partners.find((p) => p.CardCode === sel)?.CardName ?? sel) : "";
+  const selName = effSel ? String(partners.find((p) => p.CardCode === effSel)?.CardName ?? effSel) : "";
 
   return (
     <div>
       <PageHeader title="주문진행현황" description="W3071 · ORDR→ODLN→OINV 체인 롤업 (취소 제외)" />
       <SearchBar
         fields={SEARCH_FIELDS}
-        values={{ searchFrom, searchTo, sCardCode, sCardGrp, sItemCd, sItemGrp, sSlpCode, sBplId, sStage, sel }}
+        values={{ searchFrom, searchTo, sCardCode, sCardGrp, sItemCd, sItemGrp, sSlpCode, sBplId, sStage, sel: effSel }}
         storageKey={`b1w:search:W3071:${user?.uid ?? "anon"}`}
       />
 
@@ -408,7 +394,7 @@ ${lineWhere}
             <span className="text-sm text-muted">
               {lines.length.toLocaleString()}건
               {lines.length >= MAX_LINES ? ` (상위 ${MAX_LINES})` : ""}
-              {sel ? (
+              {effSel ? (
                 <a href={hrefForPartner("")} className="ml-2 text-xs text-primary hover:underline">
                   선택 해제
                 </a>

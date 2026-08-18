@@ -54,7 +54,8 @@ function defaultTo(): string {
 }
 
 const COLUMNS: Column<InvoiceRow>[] = [
-  { key: "DocNum", header: "전표 번호", align: "right", width: "90px" },
+  // 전표번호는 식별자 — 천단위 콤마 금지
+  { key: "DocNum", header: "전표 번호", align: "right", width: "90px", render: (r) => String(r.DocNum ?? "") },
   { key: "CardCode", header: "고객", width: "110px" },
   { key: "CardName", header: "이름" },
   { key: "NumAtCard", header: "고객 참조 번호", width: "130px" },

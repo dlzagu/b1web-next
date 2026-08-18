@@ -508,6 +508,38 @@ ORDER BY i."ItemCode"`;
   );
   check("송장→오더 직결 없음 (2단 체인 유지)", badLink[0].N === 0, `직결 ${badLink[0].N}라인`);
 
+  // ── 화면(W3071)이 실제로 쓰는 계약을 검증한다 ──
+  // 단계 필터 술어와 배지 CASE 가 같은 모듈에서 오지만, 둘이 어긋나면
+  // '청구완료로 걸렀는데 부분납품 배지가 섞이는' 자기모순이 생긴다(실제로 발생했다).
+  const { CHAIN_CTE, CHAIN_JOINS, ORDER_STAGES, STAGE_CASE_SQL } = await import(
+    "../src/lib/report/orderProgress"
+  );
+  const stageRows = async (where: string) =>
+    query<{ K: string; Stage: string }>(
+      `${CHAIN_CTE}
+SELECT h."DocEntry" || ':' || l."LineNum" AS "K", ${STAGE_CASE_SQL} AS "Stage"
+${CHAIN_JOINS}${where ? ` AND ${where}` : ""}`,
+    );
+  const allRows = await stageRows("");
+  const seen = new Map<string, string[]>();
+  let badgeMismatch = 0;
+  for (const st of ORDER_STAGES) {
+    if (!st.value) continue;
+    const rows = await stageRows(st.where);
+    for (const r of rows) {
+      if (r.Stage !== st.badge) badgeMismatch += 1;
+      seen.set(r.K, [...(seen.get(r.K) ?? []), st.value]);
+    }
+  }
+  const dup = [...seen.values()].filter((v) => v.length > 1).length;
+  const missing = allRows.filter((r) => !seen.has(r.K)).length;
+  check(
+    "진행단계 필터가 완전 분할 (겹침·누락 0)",
+    dup === 0 && missing === 0,
+    `전체 ${allRows.length} · 겹침 ${dup} · 누락 ${missing}`,
+  );
+  check("필터 결과 = 배지 표시 일치", badgeMismatch === 0, `불일치 ${badgeMismatch}행`);
+
   getDb();
   closeDb();
   console.log(failed === 0 ? "\n✅ 전체 통과\n" : `\n❌ 실패 ${failed}건\n`);

@@ -56,7 +56,8 @@ function renderNamed(code: string | number | null | undefined, name: string | nu
 }
 
 const COLUMNS: Column<TransferRequestRow>[] = [
-  { key: "DocNum", header: "전표 번호", align: "right", width: "90px" },
+  // 전표번호는 식별자 — 천단위 콤마 금지
+  { key: "DocNum", header: "전표 번호", align: "right", width: "90px", render: (r) => String(r.DocNum ?? "") },
   { key: "CardCode", header: "거래처 코드", width: "110px", render: (r) => r.CardCode || "-" },
   { key: "CardName", header: "거래처 이름", render: (r) => r.CardName || "-" },
   {

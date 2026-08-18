@@ -26,7 +26,8 @@ type GrpoRow = {
 };
 
 const COLUMNS: Column<GrpoRow>[] = [
-  { key: "DocNum", header: "문서번호", width: "100px", align: "right" },
+  // 문서번호는 식별자 — 천단위 콤마 금지(정렬은 align:"right" 로 숫자 유지)
+  { key: "DocNum", header: "문서번호", width: "100px", align: "right", render: (r) => String(r.DocNum ?? "") },
   { key: "DocDate", header: "전기일", width: "110px", render: (r) => ymd(r.DocDate) },
   { key: "CardCode", header: "공급처코드", width: "130px", defaultHidden: true, render: (r) => <span className="text-muted">{r.CardCode}</span> },
   { key: "CardName", header: "공급처명", render: (r) => r.CardName ?? "" },
