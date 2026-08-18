@@ -1,16 +1,16 @@
 /**
  * 조회 프로시저 TS 구현 — SQLite 엔 저장 프로시저가 없어 CF_* 의 **결과셋 계약을 그대로**
- * 재현한다 (화면 W5060·W5070 은 무수정).
+ * 재현한다 (두 재고 화면은 무수정).
  *
- * CF_W5000(Gubun, SDT, EDT, ITEMCD, WHSCD, TYPE, CARDCD1, ETC)
- *  - Gubun='W' → 창고별 재고현황 (W5070)
- *  - Gubun='J' → 재고전기리스트 (W5060) — 4단 구성(기초/월소계/상세/연소계) + 누계.
+ * CF_STOCK(Gubun, SDT, EDT, ITEMCD, WHSCD, TYPE, CARDCD1, ETC)
+ *  - Gubun='W' → 창고별 재고현황 
+ *  - Gubun='J' → 재고전기리스트  — 4단 구성(기초/월소계/상세/연소계) + 누계.
  *    ⚠️ 원본 계약대로 수량 컬럼(INQTY·OUTQTY·Cumulated)은 **콤마 포맷 문자열**로 반환한다
  *      (화면이 parseNum 으로 콤마를 제거해 합산하고, 소계행은 DOCENTRY='' 로 판별).
  */
 import { getDb } from "./sqlite";
 
-const DEMO_PROCS = new Set(["CF_W5000"]);
+const DEMO_PROCS = new Set(["CF_STOCK"]);
 export const isDemoProc = (name: string): boolean =>
   DEMO_PROCS.has(name.toUpperCase());
 
@@ -26,7 +26,7 @@ function toIso(v: unknown): string {
   return s.slice(0, 10);
 }
 
-/** 문서유형 코드 → 한글 문서명 (W5060 DOCNAME) */
+/** 문서유형 코드 → 한글 문서명 (DOCNAME) */
 const DOC_NAME: Record<string, string> = {
   "13": "A/R송장",
   "14": "A/R대변메모",
@@ -51,7 +51,7 @@ export function callDemoProc(
   name: string,
   args: Array<string | number | null>,
 ): Record<string, unknown>[] {
-  if (name.toUpperCase() !== "CF_W5000") {
+  if (name.toUpperCase() !== "CF_STOCK") {
     throw new Error(`구현되지 않은 프로시저입니다: ${name}`);
   }
   const [gubun, sdt, edt, itemCd, whsCd, type, cardNm] = args.map((a) =>
@@ -69,7 +69,7 @@ export function callDemoProc(
     : warehouseStock({ edt: toIso(edt), itemCd, whsCd });
 }
 
-/** Gubun='W' — 창고별 재고현황 (W5070) */
+/** Gubun='W' — 창고별 재고현황  */
 function warehouseStock(p: {
   edt: string;
   itemCd: string;
@@ -146,7 +146,7 @@ interface LedgerRow {
   OcrName: string | null;
 }
 
-/** Gubun='J' — 재고전기리스트 (W5060): 기초 + 월별(상세 + 월소계) + 연소계, 누계 포함 */
+/** Gubun='J' — 재고전기리스트 : 기초 + 월별(상세 + 월소계) + 연소계, 누계 포함 */
 function inventoryPostingList(p: {
   sdt: string;
   edt: string;

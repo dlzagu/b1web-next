@@ -137,7 +137,7 @@ export function translateHanaSql(sql: string): string {
 
   // TOP 이 서브쿼리 안이면(깊이>0) 최외곽 LIMIT 으로 끌어올릴 수 없다.
   // ⚠️ '앞에 ( 가 있는가'로 판정하면 안 된다 — CTE(WITH x AS (...))나 FROM (…) 서브쿼리처럼
-  //    이미 닫힌 괄호가 앞에 있어도 TOP 자체는 최외곽일 수 있다(W3100 이 그 예).
+  //    이미 닫힌 괄호가 앞에 있어도 TOP 자체는 최외곽일 수 있다(일일 업무 요약 화면이 그 예).
   if (depthAt(start) > 0) {
     throw new Error(
       "서브쿼리 안의 TOP 은 자동 변환하지 않습니다 — LIMIT 으로 수동 변환하세요",

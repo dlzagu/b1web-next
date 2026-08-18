@@ -6,11 +6,11 @@
  *  1. 시드 생성 + 마스터/문서 건수
  *  2. 조회 게이트웨이 read-only 가드 (INSERT 거부 · CALL 화이트리스트)
  *  3. HANA 호환 계층 (SELECT TOP · TO_VARCHAR · TO_DECIMAL · DAYS_BETWEEN)
- *  4. 프로시저 재구현 CF_W5000 두 모드
+ *  4. 프로시저 재구현 CF_STOCK 두 모드
  *  5. 문서흐름 왕복 — 판매오더 생성 → 부분납품 → 미결수량 검증 → 취소 가드 → 납품 취소 → 복원
  *  6. 재고·약정 정합 (OITM.OnHand = OITW 합)
- *  7. 재고 입출고 대장(W5071) 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
- *  8. 수주 진행 현황(W3071) 체인 롤업 — 납품수량 두 방식 일치 · 납품−미청구=송장 · 2단 체인 유지
+ *  7. 재고 입출고 대장 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
+ *  8. 수주 진행 현황 체인 롤업 — 납품수량 두 방식 일치 · 납품−미청구=송장 · 2단 체인 유지
  *
  * 🔴 항상 **메모리 DB** 로 돈다 — 스모크가 만드는 검증용 문서가 로컬 데모 DB(.data)를
  *    오염시키면 대시보드 '최근 트랜잭션'에 테스트 흔적이 남는다. import 전에 env 를 세팅해야
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
     litRow[0]?.lit === "SELECT TOP 9",
     String(litRow[0]?.lit),
   );
-  // 서브쿼리 안의 UNION 은 허용해야 한다 — W3100(일일현황)이 이 형태다
+  // 서브쿼리 안의 UNION 은 허용해야 한다 — 일일 업무 요약 화면이 이 형태다
   const unionInSub = await query<{ n: number }>(
     `SELECT TOP 5 t."k", COUNT(*) AS n FROM (
        SELECT "DocEntry" AS "k" FROM "ORDR"
@@ -154,14 +154,14 @@ async function main(): Promise<void> {
   );
   check("TO_DECIMAL", Number(dec[0].v) > 0, String(dec[0].v));
 
-  console.log("\n[4] CF_W5000 재구현");
+  console.log("\n[4] CF_STOCK 재구현");
   const stock = await query<{ GAYOUNG: string }>(
-    `CALL "CF_W5000"(?,?,?,?,?,?,?,?)`,
+    `CALL "CF_STOCK"(?,?,?,?,?,?,?,?)`,
     ["W", "", "", "", "", "", "", ""],
   );
   check("Gubun='W' 창고별 재고", stock.length > 0, `${stock.length}행`);
   const ledger = await query<{ DOCENTRY: string; Cumulated: string }>(
-    `CALL "CF_W5000"(?,?,?,?,?,?,?,?)`,
+    `CALL "CF_STOCK"(?,?,?,?,?,?,?,?)`,
     ["J", "20000101", "20991231", "", "", "", "", ""],
   );
   const subtotals = ledger.filter((r) => r.DOCENTRY === "");
@@ -362,8 +362,8 @@ async function main(): Promise<void> {
     `끊긴 링크 ${dangling[0].n}건`,
   );
 
-  console.log("\n[7] 재고 입출고 대장(W5071) 대사");
-  // 화면(W5071)과 동일한 CTE 를 read-only 게이트웨이로 실행한다.
+  console.log("\n[7] 재고 입출고 대장 대사");
+  // 화면과 동일한 CTE 를 read-only 게이트웨이로 실행한다.
   //  - CTE·CASE 집계가 게이트웨이 가드와 SQLite 어댑터를 통과하는지 (회귀 방지)
   //  - 위 [5] 에서 납품·오더를 취소했으므로 원장엔 역분개 행이 섞여 있다 → 그 상태에서도
   //    OINM 을 필터 없이 전부 합산한 기말잔고가 OITW.OnHand 와 일치해야 한다.
@@ -463,7 +463,7 @@ ORDER BY i."ItemCode"`;
     );
   }
 
-  console.log("\n[8] 수주 진행 현황(W3071) 체인 롤업");
+  console.log("\n[8] 수주 진행 현황 체인 롤업");
   // 화면이 쓰는 두 계산 방식이 어긋나지 않는지 — 어긋나면 진행률이 조용히 틀린다.
   //  ① 라인 기반: Quantity - OpenQty   ② 자식 합산: SUM(DLN1.Quantity) (취소 납품 제외)
   // 취소 오더를 제외하지 않으면 ①이 '전량납품'으로 둔갑하므로(engineCancel 이 OpenQty=0),
@@ -508,7 +508,7 @@ ORDER BY i."ItemCode"`;
   );
   check("송장→오더 직결 없음 (2단 체인 유지)", badLink[0].N === 0, `직결 ${badLink[0].N}라인`);
 
-  // ── 화면(W3071)이 실제로 쓰는 계약을 검증한다 ──
+  // ── 화면이 실제로 쓰는 계약을 검증한다 ──
   // 단계 필터 술어와 배지 CASE 가 같은 모듈에서 오지만, 둘이 어긋나면
   // '청구완료로 걸렀는데 부분납품 배지가 섞이는' 자기모순이 생긴다(실제로 발생했다).
   const { CHAIN_CTE, CHAIN_JOINS, ORDER_STAGES, STAGE_CASE_SQL } = await import(

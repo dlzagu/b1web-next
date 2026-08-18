@@ -435,12 +435,12 @@ function seedDocuments(db: DemoDb): void {
     }
   }
 
-  // 6) 재고이전요청 (OWTQ/WTQ1 — W5030, 표준 매핑: 출고창고=Filler)
+  // 6) 재고이전요청 (OWTQ/WTQ1 — 표준 매핑: 출고창고=Filler)
   for (let i = 0; i < 6; i++) {
     const docEntry = i + 1;
     const d = dayIn(int(0, 3));
     const status = i < 4 ? "O" : "C";
-    // 거래처를 비우면 W5030 의 거래처 검색조건이 늘 0건이 된다
+    // 거래처를 비우면 창고 이전 요청 화면의 거래처 검색조건이 늘 0건이 된다
     const cust = pick(CUSTOMERS);
     let wtqTotal = 0;
     db.prepare(
@@ -490,7 +490,7 @@ function seedDocuments(db: DemoDb): void {
     );
   }
 
-  // 7) 기타 재고이동(실사·기타입출고·이전) — W5060 문서유형 다양화. OITW/OITM 도 함께 보정
+  // 7) 기타 재고이동(실사·기타입출고·이전) — 재고 이동 내역의 문서유형 다양화. OITW/OITM 도 함께 보정
   const misc: [number, string, number, number, string][] = [
     [58, "정기 재고실사 조정", 12, 0, "W1000"],
     [59, "판촉 샘플 입고", 30, 0, "W2000"],
@@ -499,7 +499,7 @@ function seedDocuments(db: DemoDb): void {
     [67, "창고간 이전", 20, 0, "W2000"],
   ];
   // 🔴 창고간 이전은 '한 건'이라 출고 다리와 입고 다리가 **같은 품목·같은 날짜**여야 한다.
-  //    행마다 품목·날짜를 따로 뽑으면 전 창고를 합산하는 수불부(W5071)에서 한쪽 품목은
+  //    행마다 품목·날짜를 따로 뽑으면 전 창고를 합산하는 수불부에서 한쪽 품목은
   //    수량이 사라지고 다른 품목은 무에서 생긴 것처럼 보인다(총계 대사는 통과해 안 잡힌다).
   //    ⚠️ 난수 소비 횟수를 유지해야 다른 시드 데이터가 밀리지 않으므로, 5행 모두 뽑은 뒤 덮어쓴다.
   const picks = misc.map((_, i) => ({

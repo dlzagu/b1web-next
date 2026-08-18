@@ -38,13 +38,13 @@ const SHOTS: Shot[] = [
   { file: "dashboard", url: "/", label: "대시보드 — KPI·미결·최근 트랜잭션" },
   {
     file: "w3071-order-progress",
-    url: "/screens/W3071?searchFrom=2026-01-01&searchTo=2026-12-31",
+    url: "/screens/order-progress?searchFrom=2026-01-01&searchTo=2026-12-31",
     label: "수주 진행 현황 — 거래처 3단계 집계 + 오더라인 상세",
     waitFor: "main table",
   },
   {
     file: "w5071-stock-ledger",
-    url: "/screens/W5071?sYear=2026&sMonth=8&tab=month",
+    url: "/screens/stock-ledger?sYear=2026&sMonth=8&tab=month",
     label: "재고 입출고 대장 — 월별 피벗(2단 그룹헤더·좌측 고정열·합계행)",
     waitFor: "main table",
   },

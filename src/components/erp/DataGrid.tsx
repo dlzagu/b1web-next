@@ -5,7 +5,7 @@
  *  → 화면(page.tsx)의 컬럼 정의는 종전 그대로. 헤더 클릭 정렬은 공통으로 자동 적용.
  *  → 함수 prop(render/getRowKey/sortValue)은 여기(서버)에서만 실행 → RSC 경계 안전.
  *
- * 피벗 리포트 지원(2026-08-18, W5071 재고 수불부): group / frozen / total 3종 컬럼 옵션 추가.
+ * 피벗 리포트 지원(2026-08-18, 재고 입출고 대장): group / frozen / total 3종 컬럼 옵션 추가.
  * 전부 optional 이라 기존 화면은 한 줄도 바뀌지 않는다(미지정 시 종전과 동일 렌더).
  */
 import type { ReactNode } from "react";

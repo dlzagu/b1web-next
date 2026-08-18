@@ -11,8 +11,8 @@ import { query } from "./hana";
 
 /** 화면이 호출을 허용하는 조회 프로시저 (조회용 CF_*만). 새 화면 추가 시 여기 등록. */
 const PROC_WHITELIST = new Set<string>([
-  "CF_W5000", // 재고현황 (W5070)
-  "CF_W3061", // 문서/현황 계열 (W32010 등)
+  "CF_STOCK", // 재고현황 
+  "CF_DOCVIEW", // 문서/현황 계열 (미구현 — 화이트리스트 예시)
 ]);
 
 export type ProcArg = string | number | null;

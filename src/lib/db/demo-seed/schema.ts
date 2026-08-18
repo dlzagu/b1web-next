@@ -79,7 +79,7 @@ ${docPair("OPOR", "POR1", `, "U_PJT" TEXT`, ` "U_Memo" TEXT,`)}
 ${docPair("OPDN", "PDN1")}
 ${docPair("OPCH", "PCH1")}
 
--- 재고이전요청 (W5030) — 출고창고가 Filler 컬럼인 표준 B1 매핑 그대로
+-- 재고이전요청  — 출고창고가 Filler 컬럼인 표준 B1 매핑 그대로
 CREATE TABLE "OWTQ" (${DOC_HEADER}, "Filler" TEXT, "ToWhsCode" TEXT, "Address" TEXT);
 CREATE TABLE "WTQ1" (${DOC_LINE.replace('PRIMARY KEY ("DocEntry", "LineNum")', 'PRIMARY KEY ("DocEntry", "LineNum")')});
 
@@ -136,7 +136,7 @@ CREATE TABLE "OVTG" ("Code" TEXT PRIMARY KEY, "Name" TEXT, "Rate" REAL DEFAULT 0
 CREATE TABLE "OHEM" ("empID" INTEGER PRIMARY KEY, "firstName" TEXT, "lastName" TEXT, "Active" TEXT DEFAULT 'Y');
 CREATE TABLE "CUFD" ("TableID" TEXT, "AliasID" TEXT, "Descr" TEXT, "TypeID" TEXT);
 
--- 재고이동 원장 (items 상세 최근이력 + CF_W5000 Gubun='J')
+-- 재고이동 원장 (items 상세 최근이력 + CF_STOCK Gubun='J')
 CREATE TABLE "OINM" (
   "TransSeq"   INTEGER PRIMARY KEY AUTOINCREMENT,
   "ItemCode"   TEXT,
