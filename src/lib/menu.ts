@@ -65,6 +65,7 @@ export const MENU: MenuGroup[] = [
     items: [
       { id: "sales-by-partner", label: "거래처별 매출 분석", href: "/screens/sales-by-partner", ready: true, note: "거래처 GROUP BY 집계" },
       { id: "sales-by-item", label: "품목별 매출 분석", href: "/screens/sales-by-item", ready: true, note: "품목 GROUP BY 집계" },
+      { id: "sales-pivot", label: "매출 피벗 분석", href: "/screens/sales-pivot", ready: true, note: "행=거래처/품목 × 열=월 — GTotal(VAT 포함)" },
       { id: "sales-monthly", label: "월별 매출 추이", href: "/screens/sales-monthly", ready: true, note: "월별 집계" },
       { id: "sales-daily", label: "일자별 매출 집계", href: "/screens/sales-daily", ready: true, note: "일자별 집계" },
       { id: "sales-cumulative", label: "매출 누계 추이", href: "/screens/sales-cumulative", ready: true, note: "월별 누적" },
