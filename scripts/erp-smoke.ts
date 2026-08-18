@@ -540,6 +540,44 @@ ${CHAIN_JOINS}${where ? ` AND ${where}` : ""}`,
   );
   check("필터 결과 = 배지 표시 일치", badgeMismatch === 0, `불일치 ${badgeMismatch}행`);
 
+  console.log("\n[9] 매입 분석·재고 분포 대사");
+  // 매입 분석 3화면은 서로 다른 축(공급처/월)으로 같은 모집단(OPCH, CANCELED='N')을 집계한다.
+  // 축이 달라도 총합은 같아야 한다 — 한쪽 WHERE 만 고치는 회귀를 잡는 교차 검증.
+  const purByVendor = await query<{ S: number }>(
+    `SELECT SUM("T") AS "S" FROM (
+       SELECT SUM(TO_DECIMAL("DocTotal",19,2)) AS "T" FROM "OPCH"
+        WHERE "CANCELED" = 'N' GROUP BY "CardCode"
+     ) x`,
+  );
+  const purByMonth = await query<{ S: number }>(
+    `SELECT SUM("T") AS "S" FROM (
+       SELECT SUM(TO_DECIMAL("DocTotal",19,2)) AS "T" FROM "OPCH"
+        WHERE "CANCELED" = 'N' GROUP BY TO_VARCHAR("DocDate",'YYYY-MM')
+     ) x`,
+  );
+  check(
+    "매입 분석 축간 총합 일치 (공급처축 = 월축)",
+    Math.abs(Number(purByVendor[0].S) - Number(purByMonth[0].S)) < 0.001,
+    `${Number(purByVendor[0].S).toLocaleString()}`,
+  );
+
+  // 품목별 재고 분포(피벗)의 전체 합 = 창고별 재고 원본 합 — 피벗 과정에서 수량이 새지 않는가
+  const pivotTotal = await query<{ S: number }>(
+    `SELECT SUM("OnHand") AS "S" FROM "OITW"`,
+  );
+  const pivotByItem = await query<{ S: number }>(
+    `SELECT SUM("T") AS "S" FROM (
+       SELECT SUM(w."OnHand") AS "T" FROM "OITW" w
+        JOIN "OITM" i ON i."ItemCode" = w."ItemCode"
+        GROUP BY w."ItemCode"
+     ) x`,
+  );
+  check(
+    "품목별 재고 분포 합 = OITW 전체 합",
+    Math.abs(Number(pivotTotal[0].S) - Number(pivotByItem[0].S)) < 0.001,
+    `${Number(pivotTotal[0].S).toLocaleString()}`,
+  );
+
   getDb();
   closeDb();
   console.log(failed === 0 ? "\n✅ 전체 통과\n" : `\n❌ 실패 ${failed}건\n`);

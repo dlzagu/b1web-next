@@ -31,7 +31,7 @@ npm run dev        # http://localhost:3000
 
 ```bash
 npm run verify     # lint → typecheck → smoke (완료 판정 기준)
-npm run smoke      # 데모 ERP 스모크 44항목 (아래 '검증' 참조)
+npm run smoke      # 데모 ERP 스모크 46항목 (아래 '검증' 참조)
 npm run db:reset   # 데모 DB 삭제 → 다음 실행 때 재시드
 npm run shots      # README 스크린샷 재생성 (설치된 Chrome/Edge 사용, dev 서버 필요)
 ```
@@ -105,8 +105,9 @@ npm run shots      # README 스크린샷 재생성 (설치된 Chrome/Edge 사용
 - **대시보드** — 매출·매입 KPI, 채권/채무, 미결 문서, 최근 분개
 - **마스터** — 품목, 거래처 (목록·상세·창고별 재고·이동이력)
 - **매출 분석 6종** — 거래처별·품목별 매출 분석, 월별 매출 추이, 일자별 매출 집계, 매출 누계 추이, 거래처 매출 누계
+- **매입 분석 3종** — 공급처별·품목별 매입 분석, 월별 매입 추이 (매출 분석의 구매측 미러)
 - **수주 진행 현황** — 오더→납품→송장 3단계 병렬 집계(거래처별) + 오더라인 진행 상세(진행률·미납·납기경과)
-- **재고 4종** — 창고 재고 조회, 창고 이전 요청, 재고 이동 내역, 재고 입출고 대장(월별·주별 피벗)
+- **재고 5종** — 창고 재고 조회, 품목별 재고 분포(행=품목·열=창고 피벗), 창고 이전 요청, 재고 이동 내역, 재고 입출고 대장(월별·주별 피벗)
 
 </details>
 
@@ -115,10 +116,10 @@ npm run shots      # README 스크린샷 재생성 (설치된 Chrome/Edge 사용
 ERP는 화면이 그려지는 것과 **숫자가 맞는 것이 별개**입니다. 그래서 도메인 등식을 테스트로 고정했습니다.
 
 ```bash
-npm run verify     # lint → typecheck → smoke 44항목
+npm run verify     # lint → typecheck → smoke 46항목
 ```
 
-`npm run smoke`(`scripts/erp-smoke.ts`)는 **메모리 DB에 새로 시드**한 뒤 8개 영역 44항목을 검사합니다.
+`npm run smoke`(`scripts/erp-smoke.ts`)는 **메모리 DB에 새로 시드**한 뒤 9개 영역 46항목을 검사합니다.
 
 | 영역 | 무엇을 지키나 |
 |---|---|
@@ -130,6 +131,7 @@ npm run verify     # lint → typecheck → smoke 44항목
 | 6. 재고 정합 | `OITM.OnHand = OITW 합`, 문서연결 체인에 끊긴 링크 0 |
 | 7. 재고 입출고 대장 대사 | **기말재고 = OITW.OnHand** (취소 역분개가 섞인 상태로) · 생성+취소 왕복이 어느 기간컷에서도 no-op |
 | 8. 수주 진행 현황 롤업 | 납품수량 두 계산방식 일치 · **납품 − 미청구 = 송장** · 진행단계 필터가 완전 분할(겹침·누락 0) |
+| 9. 리포트 대사 | 매입 분석의 축간 총합 일치(공급처축 = 월축) · 재고 피벗 합 = 원본 합 |
 
 **발견한 결함은 회귀 테스트로 고정합니다.** 예를 들어 문서 취소 시 재고 역분개를 *취소일* 로 기록하면,
 미래 전기일 전표를 오늘 취소했을 때 조회 기간에 한쪽 다리만 잡혀 **유령 재고**가 생깁니다.
@@ -143,7 +145,7 @@ better-sqlite3 · bcryptjs(비밀번호 해시) + HMAC 서명 쿠키(`node:crypt
 
 ## 배포 · CI/CD
 
-- **CI** (GitHub Actions): push/PR 마다 `verify`(lint · typecheck · 스모크 44항목) → 프로덕션 `build`
+- **CI** (GitHub Actions): push/PR 마다 `verify`(lint · typecheck · 스모크 46항목) → 프로덕션 `build`
 - **CD** (Vercel Git 연동): `main` push → 프로덕션 배포, PR → 프리뷰 URL 자동 발급
 - **로컬 실행에 필요한 환경변수는 없다.** 서버리스에서는 콜드스타트 때 메모리 DB에
   시드를 즉석 생성한다(`src/lib/db/sqlite.ts`).

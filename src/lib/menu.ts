@@ -51,6 +51,7 @@ export const MENU: MenuGroup[] = [
     label: "재고",
     items: [
       { id: "warehouse-stock", label: "창고 재고 조회", href: "/screens/warehouse-stock", ready: true, note: "CF_STOCK Gubun=W" },
+      { id: "stock-by-item", label: "품목별 재고 분포", href: "/screens/stock-by-item", ready: true, note: "OITW 피벗 — 행=품목, 열=창고" },
       { id: "stock-ledger", label: "재고 입출고 대장", href: "/screens/stock-ledger", ready: true, note: "OINM 원장 집계 — 월별/주별 피벗(이월·입고·출고·재고)" },
       { id: "transfer-requests", label: "창고 이전 요청", href: "/screens/transfer-requests", ready: true, note: "OWTQ" },
       { id: "stock-movements", label: "재고 이동 내역", href: "/screens/stock-movements", ready: true, note: "CF_STOCK Gubun=J (OINM)" },
@@ -69,6 +70,15 @@ export const MENU: MenuGroup[] = [
       { id: "sales-cumulative", label: "매출 누계 추이", href: "/screens/sales-cumulative", ready: true, note: "월별 누적" },
       { id: "partner-sales-total", label: "거래처 매출 누계", href: "/screens/partner-sales-total", ready: true, note: "거래처 GROUP BY" },
       { id: "daily-summary", label: "일일 업무 요약", href: "/screens/daily-summary", ready: true, note: "일자별 문서 크로스" },
+    ],
+  },
+  {
+    id: "purchase-analysis",
+    label: "매입 분석",
+    items: [
+      { id: "purchase-by-vendor", label: "공급처별 매입 분석", href: "/screens/purchase-by-vendor", ready: true, note: "OPCH GROUP BY 집계 — 매출 분석 미러" },
+      { id: "purchase-by-item", label: "품목별 매입 분석", href: "/screens/purchase-by-item", ready: true, note: "OPCH/PCH1 GROUP BY 집계" },
+      { id: "purchase-monthly", label: "월별 매입 추이", href: "/screens/purchase-monthly", ready: true, note: "OPCH 월별 집계" },
     ],
   },
   {
