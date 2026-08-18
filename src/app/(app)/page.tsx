@@ -13,22 +13,23 @@ export default async function Dashboard() {
   return (
     <div className="mx-auto max-w-[1180px]">
       {/* 헤더 */}
-      <div className="animate-rise mb-14">
-        <p className="mb-3 text-[13px] font-medium tracking-[0.04em] text-muted">
+      <div className="animate-rise mb-7 md:mb-14">
+        <p className="mb-2 text-[13px] font-medium tracking-[0.04em] text-muted md:mb-3">
           {d.today} · 실시간 종합 현황
         </p>
-        <h1 className="text-display-md font-semibold text-foreground">
+        {/* 모바일에서는 display 크기를 쓰면 두 줄로 넘쳐 첫 KPI 가 화면 밖으로 밀린다 */}
+        <h1 className="text-2xl font-semibold text-foreground md:text-display-md">
           {d.greeting}
         </h1>
       </div>
 
       {/* KPI */}
-      <div className="mb-16">
+      <div className="mb-10 md:mb-16">
         <KpiGrid kpis={d.kpis} />
       </div>
 
       {/* 미결 현황 — 클릭 시 해당 목록으로 이동 */}
-      <section className="animate-rise-2 mb-20">
+      <section className="animate-rise-2 mb-12 md:mb-20">
         <div className="mb-6 flex items-baseline justify-between">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">미결 현황</h2>
           <span className="text-[13px] font-medium text-muted">처리 대기 문서</span>
@@ -56,7 +57,7 @@ export default async function Dashboard() {
       </section>
 
       {/* 미수금 상위 거래처 · 최근 트랜잭션 */}
-      <section className="animate-rise-3 grid grid-cols-1 gap-10 lg:grid-cols-[1.15fr_1fr]">
+      <section className="animate-rise-3 grid grid-cols-1 gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
         {/* 미수금 상위 거래처 TOP5 */}
         <div>
           <div className="mb-6 flex items-baseline justify-between">

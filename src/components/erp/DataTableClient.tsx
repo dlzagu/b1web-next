@@ -366,7 +366,16 @@ export default function DataTableClient({
       {(hasRowNav || storageKey) && (
         <div className="mb-1 flex items-center justify-between gap-2">
           <p className="min-w-0 truncate text-[11px] text-faint">
-            {hasRowNav ? "행 클릭=상세 · 헤더 드래그=순서변경 · 우측 끝 드래그=너비조절" : ""}
+            {hasRowNav ? (
+              <>
+                <span className="md:hidden">행을 누르면 상세로 이동</span>
+                <span className="hidden md:inline">
+                  행 클릭=상세 · 헤더 드래그=순서변경 · 우측 끝 드래그=너비조절
+                </span>
+              </>
+            ) : (
+              ""
+            )}
           </p>
           {storageKey && (
             <div className="relative shrink-0" ref={chooserRef}>

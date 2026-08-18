@@ -86,6 +86,16 @@ DB만 교체했습니다. 저장 프로시저(`CF_W5000`)는 결과셋 계약을
 
 ![판매오더 입력](docs/images/order-new.png)
 
+### 모바일 — 사이드바가 드로어로 전환
+좁은 화면에서는 고정 사이드바(224px)를 헤더의 햄버거 드로어로 바꿔 콘텐츠 폭을 회복합니다.
+그리드는 가로 스크롤로 유지하고(ERP 표는 접으면 오히려 못 읽습니다), 페이지 자체는 가로로 넘치지 않습니다.
+
+<p>
+  <img src="docs/images/mobile-dashboard.png" width="260" alt="모바일 대시보드" />
+  <img src="docs/images/mobile-drawer.png" width="260" alt="모바일 메뉴 드로어" />
+  <img src="docs/images/mobile-orders.png" width="260" alt="모바일 판매오더 목록" />
+</p>
+
 <details>
 <summary>화면 목록 (전체)</summary>
 

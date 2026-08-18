@@ -27,7 +27,11 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-export default function Sidebar() {
+/**
+ * 메뉴 목록 본체 — 데스크톱 사이드바와 모바일 드로어가 **같은 렌더링**을 공유한다.
+ * onNavigate: 드로어에서 항목을 누르면 닫히게 하는 콜백(데스크톱은 미지정).
+ */
+export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   // 접힌 그룹 id 집합. 레이아웃이 소프트내비 동안 유지되므로 화면 이동에도 상태 보존.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -41,7 +45,7 @@ export default function Sidebar() {
     });
 
   return (
-    <nav className="c4-scroll flex w-56 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface px-3 py-4">
+    <>
       {MENU.map((group) => {
         const visible = group.items.filter((item) => !item.hidden);
         if (visible.length === 0) return null; // 전 항목 숨김이면 그룹 자체 미표시
@@ -86,6 +90,7 @@ export default function Sidebar() {
                     <li key={item.id}>
                       <Link
                         href={item.href}
+                        onClick={onNavigate}
                         aria-current={active ? "page" : undefined}
                         className={cn(
                           "flex items-center rounded-field px-2.5 py-1.5 text-[13px] transition-colors",
@@ -104,6 +109,15 @@ export default function Sidebar() {
           </div>
         );
       })}
+    </>
+  );
+}
+
+/** 데스크톱 사이드바 — 모바일(md 미만)에서는 숨기고 헤더의 드로어(MobileNav)가 대신한다 */
+export default function Sidebar() {
+  return (
+    <nav className="c4-scroll hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface px-3 py-4 md:flex">
+      <NavList />
     </nav>
   );
 }

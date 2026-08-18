@@ -153,6 +153,18 @@ body {
 .animate-rise-2 { animation: riseIn 0.7s ease both; }
 .animate-rise-3 { animation: riseIn 0.8s ease both; }
 
+/* 모바일 드로어 진입 — 열릴 때만 마운트되므로 transition 이 아니라 keyframe 으로 재생한다 */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+.animate-drawer { animation: slideInLeft 0.2s ease-out both; }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade { animation: fadeIn 0.2s ease-out both; }
+
 /* Select 커스텀 chevron (Radix 도입 전 네이티브 유지) */
 .c4-select {
   appearance: none;

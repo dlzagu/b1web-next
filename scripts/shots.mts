@@ -100,7 +100,36 @@ async function main(): Promise<void> {
       const kb = Math.round(fs.statSync(file).size / 1024);
       console.log(`  ok  ${s.file}.png (${kb}KB) — ${s.label}`);
     }
-    console.log(`\n✅ ${SHOTS.length + 1}장 생성 → docs/images/\n`);
+    // ── 모바일(390x844) — 반응형 셸: 사이드바가 헤더의 드로어로 바뀐다 ──
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    for (const [name, url, openDrawer] of [
+      ["mobile-dashboard", "/", false],
+      ["mobile-drawer", "/", true],
+      ["mobile-orders", "/screens/orders", false],
+    ] as const) {
+      await page.goto(`${BASE}${url}`, { waitUntil: "networkidle2" });
+      await page.addStyleTag({ content: HIDE_DEV_UI });
+      if (openDrawer) {
+        await page.evaluate(() => {
+          const b = [...document.querySelectorAll("button")].find(
+            (x) => x.getAttribute("aria-label") === "메뉴 열기",
+          );
+          b?.click();
+        });
+        await new Promise((r) => setTimeout(r, 400)); // 드로어 슬라이드 완료 대기
+      }
+      // 가로 스크롤이 생기면 반응형이 깨진 것 — 캡쳐와 함께 즉시 드러나게 로그로 남긴다
+      const m = await page.evaluate(() => ({
+        vw: window.innerWidth,
+        docW: document.documentElement.scrollWidth,
+      }));
+      await page.screenshot({ path: path.join(OUT, `${name}.png`) as `${string}.png` });
+      console.log(
+        `  ok  ${name}.png — ${m.docW > m.vw ? `⚠️ 가로 스크롤(${m.docW}>${m.vw})` : `가로 넘침 없음(${m.vw})`}`,
+      );
+    }
+
+    console.log(`\n✅ ${SHOTS.length + 4}장 생성 → docs/images/\n`);
   } finally {
     await browser?.close();
   }
