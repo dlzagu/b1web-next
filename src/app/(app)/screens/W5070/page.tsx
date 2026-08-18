@@ -1,5 +1,5 @@
 /**
- * W5070 — 창고별 재고현황 (첫 파일럿 조회화면 / 조회 템플릿 1호)
+ * W5070 — 창고 재고 조회 (첫 파일럿 조회화면 / 조회 템플릿 1호)
  * 데이터: CF_W5000(Gubun='W', ...) — 레거시 W5070Controller 대응.
  * 패턴: searchParams → callProc(화이트리스트) → DataGrid. Gubun/TYPE 등은 서버 고정(클라이언트 미노출).
  */
@@ -65,7 +65,7 @@ export default async function W5070Page({
 
   return (
     <div>
-      <PageHeader title="창고별 재고현황" description="W5070 · CF_W5000 (Gubun=W)" />
+      <PageHeader title="창고 재고 조회" description="W5070 · CF_W5000 (Gubun=W)" />
 
       <SearchBar
         fields={SEARCH_FIELDS}

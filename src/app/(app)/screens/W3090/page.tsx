@@ -1,8 +1,8 @@
 /**
- * W3090 — 거래처별 누적매출 (분석 리포트 재설계)
+ * W3090 — 거래처 매출 누계 (분석 리포트 재설계)
  *
  * ⚠️ 레거시 컨트롤러 불일치(docs/conversion/specs/W3090.json uncertainties 참조):
- * 원본 메뉴명은 '거래처별 누적매출'이지만 실제 /W3090 컨트롤러는 전혀 다른 용도
+ * 원본 메뉴명은 '거래처 매출 누계'이지만 실제 /W3090 컨트롤러는 전혀 다른 용도
  * (품목별 공급율 저장 관리화면 — 원본/데모 스키마 어디에도
  * 프로시저 미실재)라 원본 재현 자체가 불가능(dead menu). 문서목록 형태로 두는 대신
  * rules.md "분석 리포트 화면(집계형)" 룰에 따라 메뉴명 의도 기준으로 재설계함:
@@ -138,8 +138,8 @@ export default async function W3090Page({
   return (
     <div>
       <PageHeader
-        title="거래처별 누적매출"
-        description="W3090 · 거래처별 누적매출 분석 — OINV 기반 GROUP BY 집계(레거시 컨트롤러 불일치로 메뉴명 기준 재설계, spec 참조)"
+        title="거래처 매출 누계"
+        description="W3090 · 거래처 매출 누계 분석 — OINV 기반 GROUP BY 집계(레거시 컨트롤러 불일치로 메뉴명 기준 재설계, spec 참조)"
       />
 
       <SearchBar

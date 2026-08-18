@@ -1,5 +1,5 @@
 /**
- * W3040 — 매출처별 판매분석 (신규 GROUP BY 집계 리포트로 재설계)
+ * W3040 — 거래처별 매출 분석 (신규 GROUP BY 집계 리포트로 재설계)
  *
  * 레거시(레퍼런스)는 컨트롤러가 SLayer='Returns'(ORIN 반품 헤더) 문서목록을 그대로 노출하는
  * dead/불일치 화면이었음(메뉴명 '~별 판매분석' vs 실제 '반품 문서목록', GROUP BY 없음).
@@ -158,7 +158,7 @@ export default async function W3040Page({
   return (
     <div>
       <PageHeader
-        title="매출처별 판매분석"
+        title="거래처별 매출 분석"
         description="W3040 · 거래처별 매출 집계 리포트 (OINV 기준, GROUP BY 신규 설계)"
       />
 

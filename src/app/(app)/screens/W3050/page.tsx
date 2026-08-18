@@ -1,5 +1,5 @@
 /**
- * W3050 — 상품별 판매분석 (분석 리포트 · 재설계)
+ * W3050 — 품목별 매출 분석 (분석 리포트 · 재설계)
  * ⚠️ 레거시 원본 불일치(메뉴명 ≠ 실제 데이터소스, docs/conversion/specs/W3050.json 참조,
  * 이전 확정: 실제 SLayer='CreditNotes' → ORIN, '상품별' 집계 요소 전무한 dead menu 판정)로
  * 문서목록 재사용 대신 **메뉴명 의도 기준 GROUP BY 집계 리포트로 재설계**(사용자 승인 2026-07-06, rules.md
@@ -133,7 +133,7 @@ export default async function W3050Page({
   return (
     <div>
       <PageHeader
-        title="상품별 판매분석"
+        title="품목별 매출 분석"
         description="W3050 · 품목별 매출 집계 리포트 — OINV/INV1 기반(신규 설계, docs/conversion/specs/W3050.json 참조)"
       />
 

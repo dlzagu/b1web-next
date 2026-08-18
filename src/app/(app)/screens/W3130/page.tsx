@@ -1,5 +1,5 @@
 /**
- * W3130 — 창고별 재고수량 (레퍼런스 정밀복제)
+ * W3130 — 창고 재고 요약 (레퍼런스 정밀복제)
  * 데이터: OITW(품목-창고 재고) 직접 SELECT. 레거시 소스에는 W3130 전용 Controller/JSP가
  * 없어(메뉴 등록만 존재하는 미구현 화면), 원본의 화면 메타(대상 테이블 OITW)
  * 컬럼 메타를 근거로 재구성.
@@ -151,7 +151,7 @@ export default async function W3130Page({
   return (
     <div>
       <PageHeader
-        title="창고별 재고수량"
+        title="창고 재고 요약"
         description="W3130 · OITW 기반 재구성 (원본은 메뉴만 존재)"
       />
 

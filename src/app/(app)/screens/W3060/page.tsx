@@ -1,5 +1,5 @@
 /**
- * W3060 — 기간별 판매분석 (분석 리포트 재설계)
+ * W3060 — 월별 매출 추이 (분석 리포트 재설계)
  * 데이터: OINV(AR송장 헤더, CANCELED='N')를 DocDate 기준 월별(YYYY-MM)로 GROUP BY 집계.
  * ⚠️ 레거시 소스(레거시 원본)에는 이 화면(/W3060)에 대응하는 컨트롤러가 존재하지 않음
  * (원본에 메뉴만 있고 구현이 없던 화면 — 형제 메뉴 W3040/W3050/W3070~W3130 전부 동일 상태).
@@ -118,7 +118,7 @@ export default async function W3060Page({
   return (
     <div>
       <PageHeader
-        title="기간별 판매분석"
+        title="월별 매출 추이"
         description="W3060 · 분석 리포트(월별 집계) — OINV 기반 재설계(레거시 미구현 메뉴)"
       />
 

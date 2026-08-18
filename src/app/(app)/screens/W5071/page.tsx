@@ -1,5 +1,5 @@
 /**
- * W5071 — 재고 수불부 (월별/주별 피벗)
+ * W5071 — 재고 입출고 대장 (월별/주별 피벗)
  * 데이터: OINM(재고이동 원장) 단독 집계. 이월 = 기간 시작 이전 순증감(InQty-OutQty),
  *        입고/출고 = 각 기간 버킷 합, 재고 = 이월 + 누적(입고-출고).
  *
@@ -281,7 +281,7 @@ LIMIT ${MAX_DISPLAY}`;
 
   return (
     <div>
-      <PageHeader title="재고 수불부" description="W5071 · OINM 원장 집계 (수량 기준)" />
+      <PageHeader title="재고 입출고 대장" description="W5071 · OINM 원장 집계 (수량 기준)" />
       <div className="mb-3">
         <TabNav items={TABS} value={tab} />
       </div>

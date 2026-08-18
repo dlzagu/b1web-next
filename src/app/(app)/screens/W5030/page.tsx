@@ -1,5 +1,5 @@
 /**
- * W5030 — 재고이전요청 현황 (레퍼런스 정밀복제)
+ * W5030 — 창고 이전 요청 (레퍼런스 정밀복제)
  * 데이터: OWTQ(재고이전요청 헤더) 직접 SELECT. 컨트롤러가 SLayer='InventoryTransferRequests'
  * (Category='A')로 하드코딩되어 있고 메뉴명·실제 데이터소스가 일치(OWTQ).
  * (docs/conversion/specs/W5030.json uncertainties 참조 — 역설계 확정사항)
@@ -175,7 +175,7 @@ export default async function W5030Page({
 
   return (
     <div>
-      <PageHeader title="재고이전요청 현황" description="W5030 · 레퍼런스 정밀복제 — OWTQ 기반(레거시 실동작)" />
+      <PageHeader title="창고 이전 요청" description="W5030 · 레퍼런스 정밀복제 — OWTQ 기반(레거시 실동작)" />
 
       <SearchBar
         fields={SEARCH_FIELDS}

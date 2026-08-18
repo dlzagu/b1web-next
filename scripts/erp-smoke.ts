@@ -9,8 +9,8 @@
  *  4. 프로시저 재구현 CF_W5000 두 모드
  *  5. 문서흐름 왕복 — 판매오더 생성 → 부분납품 → 미결수량 검증 → 취소 가드 → 납품 취소 → 복원
  *  6. 재고·약정 정합 (OITM.OnHand = OITW 합)
- *  7. 재고 수불부(W5071) 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
- *  8. 주문진행현황(W3071) 체인 롤업 — 납품수량 두 방식 일치 · 납품−미청구=송장 · 2단 체인 유지
+ *  7. 재고 입출고 대장(W5071) 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
+ *  8. 수주 진행 현황(W3071) 체인 롤업 — 납품수량 두 방식 일치 · 납품−미청구=송장 · 2단 체인 유지
  *
  * 🔴 항상 **메모리 DB** 로 돈다 — 스모크가 만드는 검증용 문서가 로컬 데모 DB(.data)를
  *    오염시키면 대시보드 '최근 트랜잭션'에 테스트 흔적이 남는다. import 전에 env 를 세팅해야
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
     ["J", "20000101", "20991231", "", "", "", "", ""],
   );
   const subtotals = ledger.filter((r) => r.DOCENTRY === "");
-  check("Gubun='J' 재고전기리스트", ledger.length > 0, `${ledger.length}행`);
+  check("Gubun='J' 재고 이동 내역", ledger.length > 0, `${ledger.length}행`);
   check(
     "소계행 계약(DOCENTRY 빈값)",
     subtotals.length >= 2,
@@ -362,7 +362,7 @@ async function main(): Promise<void> {
     `끊긴 링크 ${dangling[0].n}건`,
   );
 
-  console.log("\n[7] 재고 수불부(W5071) 대사");
+  console.log("\n[7] 재고 입출고 대장(W5071) 대사");
   // 화면(W5071)과 동일한 CTE 를 read-only 게이트웨이로 실행한다.
   //  - CTE·CASE 집계가 게이트웨이 가드와 SQLite 어댑터를 통과하는지 (회귀 방지)
   //  - 위 [5] 에서 납품·오더를 취소했으므로 원장엔 역분개 행이 섞여 있다 → 그 상태에서도
@@ -463,7 +463,7 @@ ORDER BY i."ItemCode"`;
     );
   }
 
-  console.log("\n[8] 주문진행현황(W3071) 체인 롤업");
+  console.log("\n[8] 수주 진행 현황(W3071) 체인 롤업");
   // 화면이 쓰는 두 계산 방식이 어긋나지 않는지 — 어긋나면 진행률이 조용히 틀린다.
   //  ① 라인 기반: Quantity - OpenQty   ② 자식 합산: SUM(DLN1.Quantity) (취소 납품 제외)
   // 취소 오더를 제외하지 않으면 ①이 '전량납품'으로 둔갑하므로(engineCancel 이 OpenQty=0),

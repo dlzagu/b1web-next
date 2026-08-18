@@ -39,13 +39,13 @@ const SHOTS: Shot[] = [
   {
     file: "w3071-order-progress",
     url: "/screens/W3071?searchFrom=2026-01-01&searchTo=2026-12-31",
-    label: "주문진행현황 — 거래처 3단계 집계 + 오더라인 상세",
+    label: "수주 진행 현황 — 거래처 3단계 집계 + 오더라인 상세",
     waitFor: "main table",
   },
   {
     file: "w5071-stock-ledger",
     url: "/screens/W5071?sYear=2026&sMonth=8&tab=month",
-    label: "재고 수불부 — 월별 피벗(2단 그룹헤더·좌측 고정열·합계행)",
+    label: "재고 입출고 대장 — 월별 피벗(2단 그룹헤더·좌측 고정열·합계행)",
     waitFor: "main table",
   },
   {

@@ -1,5 +1,5 @@
 /**
- * W3071 — 주문진행현황 (거래처 집계 → 오더라인 상세, 마스터-디테일)
+ * W3071 — 수주 진행 현황 (거래처 집계 → 오더라인 상세, 마스터-디테일)
  * 데이터: ORDR/RDR1 을 축으로 자식 납품(DLN1 BaseType=17)·매출송장(INV1 BaseType=15)을 롤업.
  *        상단 = 거래처 단위 3단계(주문·납품·매출) 병렬 집계, 하단 = 선택 거래처의 오더라인 진행 상세.
  *
@@ -357,7 +357,7 @@ ${lineWhere}
 
   return (
     <div>
-      <PageHeader title="주문진행현황" description="W3071 · ORDR→ODLN→OINV 체인 롤업 (취소 제외)" />
+      <PageHeader title="수주 진행 현황" description="W3071 · ORDR→ODLN→OINV 체인 롤업 (취소 제외)" />
       <SearchBar
         fields={SEARCH_FIELDS}
         values={{ searchFrom, searchTo, sCardCode, sCardGrp, sItemCd, sItemGrp, sSlpCode, sBplId, sStage, sel: effSel }}

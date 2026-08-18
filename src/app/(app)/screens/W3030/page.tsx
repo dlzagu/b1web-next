@@ -1,6 +1,6 @@
 /**
- * W3030 — 판매오더 현황 (레퍼런스 정밀복제)
- * 데이터: OINV(AR송장 헤더) 직접 SELECT. 메뉴명은 '판매오더 현황'이지만
+ * W3030 — 수주 목록(구) (레퍼런스 정밀복제)
+ * 데이터: OINV(AR송장 헤더) 직접 SELECT. 메뉴명은 '수주 목록(구)'이지만
  * 컨트롤러가 SLayer='Invoices'(Category='O')로 하드코딩되어 있어 실제 소스는 OINV.
  * (docs/conversion/specs/W3030.json uncertainties 참조 — 역설계 확정사항)
  * 패턴: orders/page.tsx 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩).
@@ -141,7 +141,7 @@ export default async function W3030Page({
 
   return (
     <div>
-      <PageHeader title="판매오더 현황" description="W3030 · 레퍼런스 정밀복제 — OINV 기반(레거시 실동작)" />
+      <PageHeader title="수주 목록(구)" description="W3030 · 레퍼런스 정밀복제 — OINV 기반(레거시 실동작)" />
 
       <SearchPanel>
         <SearchField label="문서번호" name="sDocNum" defaultValue={sDocNum} placeholder="문서번호" />

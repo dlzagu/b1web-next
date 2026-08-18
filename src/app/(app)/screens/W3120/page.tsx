@@ -1,5 +1,5 @@
 /**
- * W3120 — BP 마스터 조회 (레퍼런스 정밀복제)
+ * W3120 — 거래처 마스터(구) (레퍼런스 정밀복제)
  * 데이터: OCRD(비즈니스 파트너 마스터) 직접 SELECT.
  * ⚠️ 레거시 소스(레거시 원본)에 'W3120' 컨트롤러/JSP가 전혀 존재하지 않아
  * 원본의 메뉴·화면 메타 설정만으로 역설계함.
@@ -133,7 +133,7 @@ export default async function W3120Page({
   return (
     <div>
       <PageHeader
-        title="BP 마스터 조회"
+        title="거래처 마스터(구)"
         description="W3120 · 레퍼런스 정밀복제 — OCRD 기반(레거시 추정, uncertainties 참조)"
       />
 
