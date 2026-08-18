@@ -2,7 +2,6 @@
  * 매출 누계 추이 (GROUP BY 집계 + 누적합)
  * 데이터: OINV(AR송장 헤더, CANCELED='N') 월별 GROUP BY 집계 + SUM() OVER 누적합.
  * 차원=월+누적. 정렬=월 ASC(추이형). 컬럼: 매출월·전표건수·당월매출·누적매출.
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항)
  */
 import { PageHeader, SearchBar, DataGrid, type Column, type SearchFieldDef } from "@/components/erp";
 import { TableBare, TBody, TR, TD } from "@/components/ui";

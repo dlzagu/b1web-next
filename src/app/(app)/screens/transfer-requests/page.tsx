@@ -1,8 +1,7 @@
 /**
- * 창고 이전 요청 (레퍼런스 정밀복제)
- * 데이터: OWTQ(재고이전요청 헤더) 직접 SELECT. 컨트롤러가 SLayer='InventoryTransferRequests'
- * (Category='A')로 하드코딩되어 있고 메뉴명·실제 데이터소스가 일치(OWTQ).
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항)
+ * 창고 이전 요청
+ * 데이터: OWTQ(재고이전요청 헤더) 직접 SELECT — 창고 간 이동의 '요청' 단계다.
+ * 실제 이동(OWTR)은 재고 이동 내역에서 원장으로 본다.
  * 패턴: 조회 목록 화면 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩).
  */
 import { PageHeader, SearchBar, DataGrid, type Column, type SearchFieldDef } from "@/components/erp";

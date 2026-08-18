@@ -213,7 +213,7 @@ export default async function DocBaseDetail({ kind, docEntry }: { kind: DocBaseK
     { key: "created", label: "생성일", node: ymd(header.CreateDate), defaultHidden: true },
     ...udfHeaderFields(headerUdfs, header),
   ];
-  const headerNode = <FieldSet fields={headerFields} storageKey={`c4:hdr:${kind.storageNs}:${user?.uid ?? "anon"}`} />;
+  const headerNode = <FieldSet fields={headerFields} storageKey={`b1w:hdr:${kind.storageNs}:${user?.uid ?? "anon"}`} />;
 
   const lineColumns: Column<LineRow>[] = withUdfColumns(docLineColumns<LineRow>({ shipDate: kind.shipDate }), lineUdfs);
 

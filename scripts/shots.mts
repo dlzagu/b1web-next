@@ -32,33 +32,102 @@ function findBrowser(): string {
 /** dev 서버의 Next.js 개발 인디케이터(좌하단 N 배지)는 결과물에 찍히면 안 된다 */
 const HIDE_DEV_UI = "nextjs-portal{display:none!important}";
 
-type Shot = { file: string; url: string; label: string; waitFor?: string; fullPage?: boolean };
+/** 데스크톱 기본 폭. 피벗처럼 열이 많은 화면만 wide 로 넓혀 마지막 합계열까지 담는다 */
+const VIEW = { normal: 1440, wide: 1680 } as const;
+
+type Shot = {
+  file: string;
+  url: string;
+  label: string;
+  waitFor?: string;
+  fullPage?: boolean;
+  wide?: boolean;
+  /** 캡처 전에 누를 버튼/탭의 텍스트 (탭은 클라이언트 상태라 URL 로 지정할 수 없다) */
+  clickText?: string;
+};
+
+/** 버튼/탭을 텍스트로 찾아 누른다 — 못 찾으면 throw(캡처가 조용히 엉뚱한 탭을 찍는 것을 막는다) */
+async function clickByText(page: import("puppeteer-core").Page, text: string): Promise<void> {
+  const ok = await page.evaluate((t: string) => {
+    const btn = [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === t);
+    if (!btn) return false;
+    btn.click();
+    return true;
+  }, text);
+  if (!ok) throw new Error(`'${text}' 버튼/탭을 찾지 못했습니다.`);
+  await new Promise((r) => setTimeout(r, 300));
+}
+
+/** 기간 파라미터는 시드 기준일이 실행 시점마다 밀리므로 '올해 전체'로 고정한다(상수 연도 금지) */
+const YEAR = new Date().getFullYear();
 
 const SHOTS: Shot[] = [
   { file: "dashboard", url: "/", label: "대시보드 — KPI·미결·최근 트랜잭션" },
   {
-    file: "w3071-order-progress",
-    url: "/screens/order-progress?searchFrom=2026-01-01&searchTo=2026-12-31",
+    file: "order-progress",
+    url: `/screens/order-progress?searchFrom=${YEAR}-01-01&searchTo=${YEAR}-12-31`,
     label: "수주 진행 현황 — 거래처 3단계 집계 + 오더라인 상세",
     waitFor: "main table",
   },
   {
-    file: "w5071-stock-ledger",
-    url: "/screens/stock-ledger?sYear=2026&sMonth=8&tab=month",
+    file: "stock-ledger",
+    url: `/screens/stock-ledger?sYear=${YEAR}&tab=month`,
     label: "재고 입출고 대장 — 월별 피벗(2단 그룹헤더·좌측 고정열·합계행)",
     waitFor: "main table",
   },
   {
+    file: "sales-pivot",
+    url: `/screens/sales-pivot?sYear=${YEAR}&tab=partner`,
+    label: "매출 피벗 분석 — 행=거래처 × 열=월",
+    waitFor: "main table",
+    wide: true, // 1월~기준월 + 연간 합계까지 한 화면에
+  },
+  {
+    file: "purchase-by-vendor",
+    url: `/screens/purchase-by-vendor?searchFrom=${YEAR}-01-01&searchTo=${YEAR}-12-31`,
+    label: "공급처별 매입 분석 — 매출 분석의 구매측 미러",
+    waitFor: "main table",
+  },
+  {
+    file: "stock-by-item",
+    url: "/screens/stock-by-item",
+    label: "품목별 재고 분포 — 행=품목 × 열=창고",
+    waitFor: "main table",
+  },
+  {
+    // 후속 납품이 달린 오더를 고른다 — 자식이 없는 문서를 찍으면 흐름 칸이 '-' 라 아무것도 안 보인다
     file: "order-detail",
-    url: "/screens/orders/16",
+    url: "/screens/orders/45",
     label: "판매오더 상세 — 문서흐름(원천·후속) 링크",
     waitFor: "main",
+    clickText: "상세", // 흐름 링크는 '상세' 탭 안에 있다(클라이언트 탭)
   },
   {
     file: "order-new",
     url: "/screens/orders/new",
     label: "판매오더 입력 — 쓰기(ERP 엔진 경유)",
     waitFor: "form",
+  },
+];
+
+/** 모바일(390x844) — 셸 전환(드로어)·폼·넓은 피벗까지 반응형이 실제로 버티는지 */
+type MobileShot = { file: string; url: string; label: string; waitFor?: string; drawer?: boolean };
+
+const MOBILE_SHOTS: MobileShot[] = [
+  { file: "mobile-dashboard", url: "/", label: "대시보드 — KPI 카드가 1열로" },
+  { file: "mobile-drawer", url: "/", label: "메뉴 드로어 — 사이드바 대체", drawer: true },
+  { file: "mobile-orders", url: "/screens/orders", label: "판매오더 목록 — 그리드는 가로 스크롤 유지" },
+  {
+    file: "mobile-order-new",
+    url: "/screens/orders/new",
+    label: "판매오더 입력 — 폼이 1열로 접힘",
+    waitFor: "form",
+  },
+  {
+    file: "mobile-stock-ledger",
+    url: `/screens/stock-ledger?sYear=${YEAR}&tab=month`,
+    label: "재고 입출고 대장 — 넓은 피벗도 페이지는 안 넘침",
+    waitFor: "main table",
   },
 ];
 
@@ -72,7 +141,8 @@ async function main(): Promise<void> {
       args: ["--no-sandbox", "--disable-dev-shm-usage"],
     });
     const page = await browser.newPage();
-    await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+    const desktop = (w: number) => page.setViewport({ width: w, height: 900, deviceScaleFactor: 2 });
+    await desktop(VIEW.normal);
 
     // 로그인 — 실제 '데모 계정으로 둘러보기' 버튼 경로를 그대로 탄다
     await page.goto(`${BASE}/login`, { waitUntil: "networkidle2" });
@@ -92,9 +162,11 @@ async function main(): Promise<void> {
     console.log(`  ok  로그인 (데모 버튼) → ${page.url()}`);
 
     for (const s of SHOTS) {
+      await desktop(s.wide ? VIEW.wide : VIEW.normal);
       await page.goto(`${BASE}${s.url}`, { waitUntil: "networkidle2" });
       await page.addStyleTag({ content: HIDE_DEV_UI });
       if (s.waitFor) await page.waitForSelector(s.waitFor, { timeout: 15_000 });
+      if (s.clickText) await clickByText(page, s.clickText);
       const file = path.join(OUT, `${s.file}.png`);
       await page.screenshot({ path: file as `${string}.png`, fullPage: s.fullPage ?? false });
       const kb = Math.round(fs.statSync(file).size / 1024);
@@ -102,14 +174,12 @@ async function main(): Promise<void> {
     }
     // ── 모바일(390x844) — 반응형 셸: 사이드바가 헤더의 드로어로 바뀐다 ──
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-    for (const [name, url, openDrawer] of [
-      ["mobile-dashboard", "/", false],
-      ["mobile-drawer", "/", true],
-      ["mobile-orders", "/screens/orders", false],
-    ] as const) {
-      await page.goto(`${BASE}${url}`, { waitUntil: "networkidle2" });
+    let overflow = 0;
+    for (const s of MOBILE_SHOTS) {
+      await page.goto(`${BASE}${s.url}`, { waitUntil: "networkidle2" });
       await page.addStyleTag({ content: HIDE_DEV_UI });
-      if (openDrawer) {
+      if (s.waitFor) await page.waitForSelector(s.waitFor, { timeout: 15_000 });
+      if (s.drawer) {
         await page.evaluate(() => {
           const b = [...document.querySelectorAll("button")].find(
             (x) => x.getAttribute("aria-label") === "메뉴 열기",
@@ -123,13 +193,16 @@ async function main(): Promise<void> {
         vw: window.innerWidth,
         docW: document.documentElement.scrollWidth,
       }));
-      await page.screenshot({ path: path.join(OUT, `${name}.png`) as `${string}.png` });
+      if (m.docW > m.vw) overflow += 1;
+      await page.screenshot({ path: path.join(OUT, `${s.file}.png`) as `${string}.png` });
       console.log(
-        `  ok  ${name}.png — ${m.docW > m.vw ? `⚠️ 가로 스크롤(${m.docW}>${m.vw})` : `가로 넘침 없음(${m.vw})`}`,
+        `  ok  ${s.file}.png — ${m.docW > m.vw ? `⚠️ 가로 스크롤(${m.docW}>${m.vw})` : `가로 넘침 없음(${m.vw})`} — ${s.label}`,
       );
     }
 
-    console.log(`\n✅ ${SHOTS.length + 4}장 생성 → docs/images/\n`);
+    console.log(`\n✅ ${SHOTS.length + MOBILE_SHOTS.length + 1}장 생성 → docs/images/`);
+    if (overflow > 0) console.log(`⚠️ 모바일 가로 넘침 ${overflow}건 — 반응형 회귀\n`);
+    else console.log("");
   } finally {
     await browser?.close();
   }

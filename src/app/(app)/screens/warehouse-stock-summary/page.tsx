@@ -1,7 +1,6 @@
 /**
- * 창고 재고 요약 (레퍼런스 정밀복제)
+ * 창고 재고 요약
  * 데이터: OITW(품목-창고 재고) 직접 SELECT. '창고 재고 조회'가 대표 화면이라 메뉴에서는 숨김(중복).
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항/추정 구분)
  * 패턴: 조회 목록 화면 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩).
  */
 import { PageHeader, SearchPanel, SearchField, DataGrid, type Column } from "@/components/erp";

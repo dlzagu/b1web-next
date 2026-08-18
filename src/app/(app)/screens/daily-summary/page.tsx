@@ -9,7 +9,6 @@
  *   - ODLN(납품)     → 납품건수·납품금액
  *   - OINV(AR송장)   → 매출건수·매출금액
  * 정렬 일자 DESC. 필터: 기간(기본 당해년 1/1~오늘). 합계행 포함.
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항 + 검증 실측치)
  */
 import { PageHeader, SearchBar, DataGrid, type Column, type SearchFieldDef } from "@/components/erp";
 import { TableBare, TBody, TR, TD } from "@/components/ui";

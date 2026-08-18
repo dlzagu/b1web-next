@@ -21,8 +21,8 @@ SAP B1 데이터 모델(표준 테이블·문서연결 규칙)을 따르고, 데
 ## 데이터 계층 (전환 후)
 - **조회**: `src/lib/db/hana.ts`(게이트웨이) → `src/lib/db/sqlite.ts`(HANA 호환 계층: TO_VARCHAR·TO_DECIMAL·DAYS_BETWEEN 커스텀 함수 + `SELECT TOP`→`LIMIT` 재작성).
   화면 쿼리는 **HANA 문법 그대로** 쓴다 — 어댑터가 흡수하므로 고치지 않는다.
-- **프로시저**: `src/lib/db/procImpl.ts` — `CF_W5000`(Gubun W/J)을 결과셋 계약 그대로 TS 재구현.
-  ⚠️ W5060 계약상 수량 컬럼은 **콤마 포맷 문자열**이고 소계행은 `DOCENTRY=''` 다.
+- **프로시저**: `src/lib/db/procImpl.ts` — `CF_STOCK`(Gubun W/J)을 결과셋 계약 그대로 TS 재구현.
+  ⚠️ 계약상 수량 컬럼은 **콤마 포맷 문자열**이고 소계행은 `DOCENTRY=''` 다.
 - **쓰기**: `src/lib/sl/documents.ts`(SL 계약 타입 유지) → `src/lib/sl/localErp.ts`(엔진).
   문서연결·미결수량·재고원장·분개·취소 복원이 여기 한 곳에 있다.
 - **시드**: `src/lib/db/demo-seed/` — 문서를 SQL 로 꽂지 않고 **엔진을 통해 생성**해 불변식을 구성으로 보장한다.

@@ -2,7 +2,6 @@
  * 월별 매출 추이 (분석 리포트 재설계)
  * 데이터: OINV(AR송장 헤더, CANCELED='N')를 DocDate 기준 월별(YYYY-MM)로 GROUP BY 집계.
  * 메뉴명 의도(월별 매출 집계 추이)에 맞춰 GROUP BY 집계 리포트로 설계했다.
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항)
  * 패턴: 조회 목록 화면 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩, GROUP BY 집계형 + 비중%).
  */
 import { PageHeader, SearchBar, DataGrid, type Column, type SearchFieldDef } from "@/components/erp";

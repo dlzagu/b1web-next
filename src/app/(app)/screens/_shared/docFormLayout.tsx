@@ -56,7 +56,7 @@ export function useHeaderFieldVisible(storageNs: string, uid: string): (key: str
   useEffect(() => {
     let next: { hidden: Set<string>; saved: boolean } = { hidden: new Set(), saved: false };
     try {
-      const raw = localStorage.getItem(`c4:hdr:${storageNs}:${uid}`);
+      const raw = localStorage.getItem(`b1w:hdr:${storageNs}:${uid}`);
       if (raw) {
         const p = JSON.parse(raw) as { hidden?: string[] };
         next = { hidden: new Set(p.hidden ?? []), saved: true };

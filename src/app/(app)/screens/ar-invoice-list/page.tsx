@@ -1,8 +1,7 @@
 /**
- * 수주 목록(구) (레퍼런스 정밀복제)
- * 데이터: OINV(AR송장 헤더) 직접 SELECT. 메뉴명은 '수주 목록(구)'이지만
- * 컨트롤러가 SLayer='Invoices'(Category='O')로 하드코딩되어 있어 실제 소스는 OINV.
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항)
+ * 수주 목록(구)
+ * 데이터: OINV(AR송장 헤더) 직접 SELECT — 메뉴명과 달리 실제 소스는 오더가 아니라 송장이다.
+ * '매출 세금계산서'와 소스가 겹쳐 메뉴에서는 숨긴다(라우트는 유지 — menu.ts hidden).
  * 패턴: orders/page.tsx 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩).
  */
 import { PageHeader, SearchPanel, SearchField, CflField, DataGrid, type Column } from "@/components/erp";

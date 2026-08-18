@@ -1,9 +1,8 @@
 /**
- * 재고 이동 내역 (레퍼런스 정밀복제)
- * 메뉴명은 '재고 이동 내역'이지만 실제 데이터는 재고이동 원장(OINM) 기반
- * '재고전기리스트'(CF_STOCK 프로시저 내부 주석: JW_5010_01) — 재고실사(OINM 문서유형)뿐
- * 아니라 납품/입고/이전 등 모든 재고이동 트랜잭션을 포함. 원장 성격 그대로 보존
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항).
+ * 재고 이동 내역
+ * 메뉴명은 '재고 이동 내역'이지만 실제 데이터는 재고이동 원장(OINM) 기반 '재고전기리스트' 성격이다
+ * — 재고실사(OINM 문서유형)뿐 아니라 납품/입고/이전 등 모든 재고이동 트랜잭션을 포함한다.
+ * 원장 성격을 그대로 보존한다(집계로 접지 않는다).
  * 데이터소스: CALL "CF_STOCK"(Gubun='J', SDT, EDT, ITEMCD, WHSCD, TYPE, CARDCD1, ETC)
  * — 4단 UNION(기초재고/월간소계/상세/연간소계) + 누계 윈도우함수 구조라 재구성 SELECT 대신
  * 프로시저 CALL 채택(hana.ts CALL 화이트리스트 CF_ prefix 허용, rules.md 예외).
@@ -30,7 +29,7 @@ type InventoryPostRow = {
   WHSNAME: string | null;
   CARDCODE: string | null;
   CARDNAME: string | null;
-  INQTY: string; // 프로시저 내부에서 이미 LEGACY_FN_NUMFORMAT 콤마 포맷 문자열로 반환됨
+  INQTY: string; // 프로시저가 콤마 포맷 문자열로 반환한다(계약 — procImpl.ts 참조)
   OUTQTY: string;
   UOM: string | null;
   Comments: string | null;
