@@ -7,8 +7,7 @@
  *    (배포처·로컬에 낡은 AUTH_DEV_* 가 남아 있어도 링크를 받은 사람이 못 들어가면 안 된다).
  *  - env 로 계정을 하나 **추가** 지정할 수 있다 (사설 배포용). 데모 계정을 덮지는 않는다.
  *
- * 비밀번호는 bcrypt 해시로 대조하고,
- * 세션에는 비밀번호를 담지 않는다(session.ts).
+ * 비밀번호는 bcrypt 해시로만 대조하고, 세션에는 비밀번호를 담지 않는다(session.ts).
  */
 import "server-only";
 import bcrypt from "bcryptjs";

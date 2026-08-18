@@ -2,8 +2,7 @@
  * 세션 (P2.s1) — HMAC 서명된 httpOnly 쿠키 기반 stateless 세션.
  *
  * 설계 원칙:
- * - 세션에 비밀번호를 담지 않는다.
- * - 인증은 bcrypt 해시 대조 (authenticate.ts).
+ * - 세션에 비밀번호를 담지 않는다 (인증은 bcrypt 대조 — authenticate.ts).
  * - 쿠키는 httpOnly + signed + 만료. 서명키 AUTH_SECRET.
  */
 import "server-only";

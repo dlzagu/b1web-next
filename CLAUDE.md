@@ -38,7 +38,7 @@ SAP B1 기반 웹 ERP(Spring MVC + JSP)를 Next.js로 재구축한 **포트폴�
 - 화면 추가는 템플릿 복제 패턴으로 (조회 화면 = 검색조건 + 그리드 + 액션).
 
 ## 진행 추적
-- `docs/progress/goal1.json` — 세션 시작 시 Read → 다음 pending step부터.
+- `docs/progress/goal1.json` — 세션 시작 시 Read → 다음 pending step부터. (로컬 전용, 저장소 미포함)
 
 ## 명령어
 - `npm run dev` / `npm run verify` / `npm run build` / `npm run smoke` / `npm run db:reset`

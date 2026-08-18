@@ -46,3 +46,10 @@ docs/새 폴더/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 내부 작업 문서 — 로컬에만 둔다.
+# 원본(사내 시스템) 역설계 산출물이라 공개 저장소에 두지 않는다. 코드·README·ADR 만 공개.
+docs/conversion/
+docs/progress/
+docs/screens/
+docs/NIGHT-REPORT.md
