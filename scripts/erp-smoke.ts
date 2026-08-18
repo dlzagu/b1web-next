@@ -9,6 +9,7 @@
  *  4. 프로시저 재구현 CF_W5000 두 모드
  *  5. 문서흐름 왕복 — 판매오더 생성 → 부분납품 → 미결수량 검증 → 취소 가드 → 납품 취소 → 복원
  *  6. 재고·약정 정합 (OITM.OnHand = OITW 합)
+ *  7. 재고 수불부(W5071) 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
  *
  * 🔴 항상 **메모리 DB** 로 돈다 — 스모크가 만드는 검증용 문서가 로컬 데모 DB(.data)를
  *    오염시키면 대시보드 '최근 트랜잭션'에 테스트 흔적이 남는다. import 전에 env 를 세팅해야
@@ -359,6 +360,63 @@ async function main(): Promise<void> {
     dangling[0].n === 0,
     `끊긴 링크 ${dangling[0].n}건`,
   );
+
+  console.log("\n[7] 재고 수불부(W5071) 대사");
+  // 화면(W5071)과 동일한 CTE 를 read-only 게이트웨이로 실행한다.
+  //  - CTE·CASE 집계가 게이트웨이 가드와 SQLite 어댑터를 통과하는지 (회귀 방지)
+  //  - 위 [5] 에서 납품·오더를 취소했으므로 원장엔 역분개 행이 섞여 있다 → 그 상태에서도
+  //    OINM 을 필터 없이 전부 합산한 기말잔고가 OITW.OnHand 와 일치해야 한다.
+  const sbSpan = await query<{ MaxD: string | null }>(
+    `SELECT MAX("DocDate") AS "MaxD" FROM "OINM"`,
+  );
+  const sbMax = String(sbSpan[0]?.MaxD ?? "");
+  const sbY = Number(sbMax.slice(0, 4));
+  const sbEndM = Number(sbMax.slice(5, 7));
+  const sbPad = (n: number) => String(n).padStart(2, "0");
+  const sbLastDay = (yy: number, mm: number) => new Date(yy, mm, 0).getDate();
+  const sbAgg: string[] = [
+    `SUM(CASE WHEN m."DocDate" < ? THEN m."InQty" - m."OutQty" ELSE 0 END) AS "Opening"`,
+  ];
+  const sbParams: (string | number)[] = [`${sbY}-01-01`];
+  const sbKeys: string[] = [];
+  for (let m = 1; m <= sbEndM; m += 1) {
+    const k = `m${m}`;
+    sbKeys.push(k);
+    const from = `${sbY}-${sbPad(m)}-01`;
+    const to = `${sbY}-${sbPad(m)}-${sbPad(sbLastDay(sbY, m))}`;
+    sbAgg.push(`SUM(CASE WHEN m."DocDate" BETWEEN ? AND ? THEN m."InQty" ELSE 0 END) AS "in_${k}"`);
+    sbParams.push(from, to);
+    sbAgg.push(`SUM(CASE WHEN m."DocDate" BETWEEN ? AND ? THEN m."OutQty" ELSE 0 END) AS "out_${k}"`);
+    sbParams.push(from, to);
+  }
+  sbParams.push(`${sbY}-${sbPad(sbEndM)}-${sbPad(sbLastDay(sbY, sbEndM))}`);
+  const sbOuter = [`mv."Opening"`].concat(
+    sbKeys.flatMap((k) => [`mv."in_${k}"`, `mv."out_${k}"`]),
+  );
+  const sbSql = `WITH mv AS (
+  SELECT m."ItemCode", ${sbAgg.join(", ")}
+  FROM "OINM" m
+  WHERE m."DocDate" <= ?
+  GROUP BY m."ItemCode"
+)
+SELECT i."ItemCode", ${sbOuter.join(", ")}
+FROM mv
+JOIN "OITM" i ON i."ItemCode" = mv."ItemCode"
+ORDER BY i."ItemCode"`;
+  const sbRows = await query<Record<string, string | number | null>>(sbSql, sbParams);
+  check("게이트웨이 CTE 집계 통과", sbRows.length > 0, `${sbRows.length}개 품목`);
+
+  const sbOnHand = await query<{ ItemCode: string; S: number }>(
+    `SELECT "ItemCode", SUM("OnHand") AS "S" FROM "OITW" GROUP BY "ItemCode"`,
+  );
+  const sbOnHandMap = new Map(sbOnHand.map((r) => [r.ItemCode, Number(r.S)]));
+  let sbBad = 0;
+  for (const r of sbRows) {
+    let running = Number(r.Opening ?? 0);
+    for (const k of sbKeys) running += Number(r[`in_${k}`] ?? 0) - Number(r[`out_${k}`] ?? 0);
+    if (Math.abs(running - (sbOnHandMap.get(String(r.ItemCode)) ?? 0)) > 0.001) sbBad += 1;
+  }
+  check("기말잔고 = OITW.OnHand (취소 역분개 포함)", sbBad === 0, `불일치 ${sbBad}종`);
 
   getDb();
   closeDb();

@@ -51,6 +51,7 @@ export const MENU: MenuGroup[] = [
     label: "재고",
     items: [
       { id: "W5070", label: "창고별 재고현황", href: "/screens/W5070", ready: true, note: "CF_W5000 Gubun=W" },
+      { id: "W5071", label: "재고 수불부", href: "/screens/W5071", ready: true, note: "OINM 원장 집계 — 월별/주별 피벗(이월·입고·출고·재고)" },
       { id: "W5030", label: "재고이전요청 현황", href: "/screens/W5030", ready: true, note: "OWTQ" },
       { id: "W5060", label: "재고실사 현황", href: "/screens/W5060", ready: true, note: "CF_W5000 Gubun=J (OINM)" },
       // 숨김(중복)
