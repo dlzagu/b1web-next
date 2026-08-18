@@ -3,10 +3,7 @@
  * 데이터: ORDR/RDR1 을 축으로 자식 납품(DLN1 BaseType=17)·매출송장(INV1 BaseType=15)을 롤업.
  *        상단 = 거래처 단위 3단계(주문·납품·매출) 병렬 집계, 하단 = 선택 거래처의 오더라인 진행 상세.
  *
- * ⚠️ 원본(레거시 웹 ERP)에는 전용 집계 프로시저가 있고 저장소에 없다 — 화면 계약(검색조건, 3단계
- *    병렬 그리드, 거래처→품목라인 드릴다운, 금액·부가세 기본숨김)만 이식하고 산식은 재구성했다.
- *    원본에는 진행률·미납수량 컬럼이 없다(단계 병렬 비교만) — 우리는 라인 미결수량이 있으므로
- *    화면 이름에 맞게 신설했다. (로컬 스펙 문서 uncertainties 참조)
+ * 진행률·미납·미청구는 라인 미결수량에서 계산한다 — 화면 이름값을 하려면 단계 비교만으로는 부족하다.
  *
  * 🔴 취소 처리 3종 — 하나라도 빠지면 조용히 틀린다(전부 실측 재현됨):
  *   ① ORDR.CANCELED='N' 필수 — engineCancel 이 취소 문서 라인을 OpenQty=0 으로 밀어버려
@@ -57,7 +54,7 @@ function ymd(v: unknown): string {
   return v ? String(v).slice(0, 10) : "";
 }
 
-/** 기본 기간 = 당월 1일 ~ 오늘 (원본 daterangepicker 기본값 그대로) */
+/** 기본 기간 = 당월 1일 ~ 오늘  */
 function defaultFrom(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
@@ -285,7 +282,7 @@ ${lineWhere}
     return `/screens/order-progress?${p.toString()}`;
   };
 
-  // 상단 — 3단계 병렬. 원본 관례대로 순액·부가세는 기본 숨김(컬럼 선택기에서 켠다)
+  // 상단 — 3단계 병렬. 순액·부가세는 기본 숨김(컬럼 선택기에서 켠다)
   const stageCols = (
     prefix: "Ord" | "Dlv" | "Inv",
     label: string,

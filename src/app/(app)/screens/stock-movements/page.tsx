@@ -2,7 +2,7 @@
  * 재고 이동 내역 (레퍼런스 정밀복제)
  * 메뉴명은 '재고 이동 내역'이지만 실제 데이터는 재고이동 원장(OINM) 기반
  * '재고전기리스트'(CF_STOCK 프로시저 내부 주석: JW_5010_01) — 재고실사(OINM 문서유형)뿐
- * 아니라 납품/입고/이전 등 모든 재고이동 트랜잭션을 포함. 레거시 실동작 그대로 보존
+ * 아니라 납품/입고/이전 등 모든 재고이동 트랜잭션을 포함. 원장 성격 그대로 보존
  * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항).
  * 데이터소스: CALL "CF_STOCK"(Gubun='J', SDT, EDT, ITEMCD, WHSCD, TYPE, CARDCD1, ETC)
  * — 4단 UNION(기초재고/월간소계/상세/연간소계) + 누계 윈도우함수 구조라 재구성 SELECT 대신
@@ -44,7 +44,7 @@ type InventoryPostRow = {
   GLBPCD: string | null;
 };
 
-// JSP 원본 하드코딩 SAPOBJLIST 그대로 재현 (문서유형 필터 옵션 — TransType 코드→문서명)
+// 문서유형 필터 옵션 — TransType 코드→문서명
 const DOC_TYPE_OPTIONS = [
   { value: "13", label: "A/R송장" },
   { value: "14", label: "A/R대변메모" },
@@ -88,7 +88,7 @@ function formatQty(v: string | null | undefined): string {
   return v; // 이미 프로시저에서 콤마 포맷 완료
 }
 
-// 기본 기간: 당월 1일 ~ 오늘 (JSP 원본 curDateF/curDateT 로직 그대로)
+// 기본 기간: 당월 1일 ~ 오늘 
 function defaultFrom(): string {
   const d = new Date();
   const y = d.getFullYear();
@@ -169,7 +169,7 @@ export default async function StockMovementsPage({
       `SELECT "WhsCode", "WhsName" FROM "OWHS" WHERE "Locked"='N' AND "Inactive"='N' ORDER BY "WhsCode"`,
     );
 
-    // CF_STOCK(Gubun='J', SDT, EDT, ITEMCD, WHSCD, TYPE, CARDCD1, ETC) — 원본 파라미터 순서 그대로
+    // CF_STOCK(Gubun='J', SDT, EDT, ITEMCD, WHSCD, TYPE, CARDCD1, ETC) — 프로시저 파라미터 순서
     // (화이트리스트: src/lib/db/proc.ts — 창고 재고 조회가 이미 Gubun='W' 로 동일 프로시저 사용 중)
     const all = await callProc<InventoryPostRow>("CF_STOCK", [
       "J",
@@ -228,7 +228,7 @@ export default async function StockMovementsPage({
     <div>
       <PageHeader
         title="재고 이동 내역"
-        description="레퍼런스 정밀복제 — OINM(재고이동 원장) 기반 재고전기리스트(레거시 실동작, CF_STOCK)"
+        description="OINM(재고이동 원장) 기반 — CF_STOCK"
       />
 
       <SearchBar

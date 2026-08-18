@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * DocumentFormShell — 레거시 DocBase.jsp(SAP B1 문서창) 골격의 재사용 셸.
+ * DocumentFormShell — SAP B1 문서창 골격의 재사용 셸.
  * 상단 바(제목·상태·액션) + 헤더 슬롯 + 탭(내용/상세/기타) + 하단 합계 슬롯.
  * 문서종류별(판매오더·납품·송장·구매…) 폼이 이 셸을 공유한다. 필드/라인/액션은 주입.
  */

@@ -1,8 +1,5 @@
 /**
- * 매출 누계 추이 (분석 리포트 화면 · GROUP BY 집계)
- * 🚩 원본에 대응 구현이 없음(완전한 죽은 메뉴 — 인접 분석 메뉴도 동일).
- * 원본에 메뉴명만 있고 구현이 존재하지 않아, 메뉴명 기준 신규 설계
- * (rules.md "분석 리포트 화면(집계형)" 섹션, 사용자 승인 2026-07-06).
+ * 매출 누계 추이 (GROUP BY 집계 + 누적합)
  * 데이터: OINV(AR송장 헤더, CANCELED='N') 월별 GROUP BY 집계 + SUM() OVER 누적합.
  * 차원=월+누적. 정렬=월 ASC(추이형). 컬럼: 매출월·전표건수·당월매출·누적매출.
  * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항)
@@ -134,7 +131,7 @@ export default async function SalesCumulativePage({
     <div>
       <PageHeader
         title="매출 누계 추이"
-        description="분석 리포트(집계형) — 레거시 컨트롤러 부재(죽은 메뉴), OINV 월별 매출 GROUP BY 집계 + 누적합으로 신규 설계"
+        description="OINV 월별 매출 GROUP BY 집계 + 누적합"
       />
 
       <SearchBar

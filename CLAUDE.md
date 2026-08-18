@@ -3,8 +3,9 @@
 # B1WEB-Next — 프로젝트 헌법
 
 ## 이 프로젝트가 뭔가
-SAP B1 기반 웹 ERP(Spring MVC + JSP)를 Next.js로 재구축한 **포트폴리오 사이드 프로젝트**.
-데이터는 자체 SQLite + **전부 가상 시드**이고, 실서버(Service Layer·HANA) 연결은 폐기됐다.
+브라우저만으로 판매·구매·재고 업무를 처리하는 웹 SCM/ERP **포트폴리오 사이드 프로젝트**.
+SAP B1 데이터 모델(표준 테이블·문서연결 규칙)을 따르고, 데이터는 자체 SQLite + **전부 가상 시드**다.
+실서버(Service Layer·HANA) 연결은 없다.
 - 원본(참조 전용, 로컬에만 존재) — **절대 수정 금지**
 - 전환 결정 기록: `docs/decisions/ADR-0001-portfolio-sqlite.md`
 

@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * 판매오더 생성/수정 폼 — 레거시 DocBase.jsp(SAP B1 문서창) 재현.
+ * 판매오더 생성/수정 폼 — SAP B1 문서창 형태.
  * DocumentFormShell(재사용 셸) 위에 헤더 3열 + 탭(내용/상세/기타) + 하단 합계 + 액션바(저장/신규/취소/목록).
  * - 내용: 라인 그리드(품목 CFL·수량·단가·세금그룹·공급가액·세액·총계·납품예정일·창고)
  * - 상세: 참조번호·지불조건 / 기타: 비고·저널적요
  * - mode="edit": 거래처·통화·주문일자·사업장은 게시 후 제약이라 읽기전용
- * - 저장은 saveOrder, 취소는 cancelOrder 서버 액션(SL 경유, 레거시 페이로드 계약)
+ * - 저장은 saveOrder, 취소는 cancelOrder 서버 액션(SL 페이로드 계약)
  * - 가져오기(문서연결)는 자리만 — 실제 연결은 #8(오더→납품)에서.
  */
 import { useMemo, useState, useTransition } from "react";
@@ -129,7 +129,7 @@ export default function OrderForm({
     setSelected(new Set());
   };
 
-  // 세율(%) · 라인/합계 계산 (레거시 LineCal: 공급가액=수량×단가, 세액=round(공급가액×세율/100))
+  // 세율(%) · 라인/합계 계산 (공급가액=수량×단가, 세액=round(공급가액×세율/100))
   const rateOf = (vatGroup: string) => refs.vatGroups.find((v) => v.value === vatGroup)?.rate ?? 0;
   const supplyOf = (l: OrderLineValue) => {
     const q = parseFloat(l.quantity);

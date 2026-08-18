@@ -3,9 +3,6 @@
  * 데이터: OINM(재고이동 원장) 단독 집계. 이월 = 기간 시작 이전 순증감(InQty-OutQty),
  *        입고/출고 = 각 기간 버킷 합, 재고 = 이월 + 누적(입고-출고).
  *
- * ⚠️ 원본(레거시 웹 ERP)의 산식은 DB 프로시저 안에 있고 저장소에 없다 — 화면 정의(검색조건 4개,
- *    월별/주별 2탭, 2단 그룹헤더, 좌측 고정열, 하단 합계행)만 이식하고 산식은 우리 원장으로 재구성.
- *    (로컬 스펙 문서 uncertainties 참조)
  *
  * 🔴 OINM 에 CANCELED 필터를 걸지 않는다 — 문서 취소는 행 삭제가 아니라 '역방향 행 추가'라서
  *    원장을 필터 없이 전부 합산해야 상쇄가 성립한다(엔진 engineCancel). 헤더 조인으로 취소건을
@@ -199,7 +196,7 @@ LIMIT ${MAX_DISPLAY}`;
   }
 
   const monthCap = sYear === now.getFullYear() ? now.getMonth() + 1 : 12;
-  // 원본 관례: 큰 달부터 내림차순
+  // 큰 달부터 내림차순
   const monthOptions = Array.from({ length: monthCap }, (_, i) => monthCap - i).map((m) => ({
     value: String(m),
     label: `${m}월`,

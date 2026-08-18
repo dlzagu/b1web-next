@@ -175,7 +175,7 @@ export default async function TransferRequestsPage({
 
   return (
     <div>
-      <PageHeader title="창고 이전 요청" description="레퍼런스 정밀복제 — OWTQ 기반(레거시 실동작)" />
+      <PageHeader title="창고 이전 요청" description="OWTQ 기반 이전요청 조회" />
 
       <SearchBar
         fields={SEARCH_FIELDS}

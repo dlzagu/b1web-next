@@ -1,8 +1,6 @@
 /**
  * 창고 재고 요약 (레퍼런스 정밀복제)
- * 데이터: OITW(품목-창고 재고) 직접 SELECT. 레거시 소스에는 이 화면 전용 Controller/JSP가
- * 없어(메뉴 등록만 존재하는 미구현 화면), 원본의 화면 메타(대상 테이블 OITW)
- * 컬럼 메타를 근거로 재구성.
+ * 데이터: OITW(품목-창고 재고) 직접 SELECT. '창고 재고 조회'가 대표 화면이라 메뉴에서는 숨김(중복).
  * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항/추정 구분)
  * 패턴: 조회 목록 화면 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩).
  */
@@ -152,7 +150,7 @@ export default async function WarehouseStockSummaryPage({
     <div>
       <PageHeader
         title="창고 재고 요약"
-        description="OITW 기반 재구성 (원본은 메뉴만 존재)"
+        description="OITW 기반 창고 재고 요약"
       />
 
       <SearchPanel>

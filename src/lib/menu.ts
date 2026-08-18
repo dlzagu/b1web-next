@@ -1,6 +1,5 @@
 /**
- * 메뉴 트리 — 코드 정의. 레거시는 DB(*_WEB_ADMIN)에서 메뉴를 읽지만,
- * 신규는 화면을 코드로 고정. (추후 DB 메뉴/권한 연동)
+ * 메뉴 트리 — 코드로 고정한다. (추후 DB 메뉴/권한 연동)
  *
  * 구조(2026-07-06 정리): 업무 도메인별 6그룹. "레퍼런스·" 내부 접두사 제거.
  * - ready=false = 아직 미구현(사이드바에 '준비중' 표시).
@@ -66,7 +65,7 @@ export const MENU: MenuGroup[] = [
       { id: "sales-by-partner", label: "거래처별 매출 분석", href: "/screens/sales-by-partner", ready: true, note: "거래처 GROUP BY 집계" },
       { id: "sales-by-item", label: "품목별 매출 분석", href: "/screens/sales-by-item", ready: true, note: "품목 GROUP BY 집계" },
       { id: "sales-monthly", label: "월별 매출 추이", href: "/screens/sales-monthly", ready: true, note: "월별 집계" },
-      { id: "sales-daily", label: "일자별 매출 집계", href: "/screens/sales-daily", ready: true, note: "일자별 집계(원본 프로시저 버그 미재현)" },
+      { id: "sales-daily", label: "일자별 매출 집계", href: "/screens/sales-daily", ready: true, note: "일자별 집계" },
       { id: "sales-cumulative", label: "매출 누계 추이", href: "/screens/sales-cumulative", ready: true, note: "월별 누적" },
       { id: "partner-sales-total", label: "거래처 매출 누계", href: "/screens/partner-sales-total", ready: true, note: "거래처 GROUP BY" },
       { id: "daily-summary", label: "일일 업무 요약", href: "/screens/daily-summary", ready: true, note: "일자별 문서 크로스" },

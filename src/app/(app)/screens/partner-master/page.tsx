@@ -1,11 +1,6 @@
 /**
- * 거래처 마스터(구) (레퍼런스 정밀복제)
- * 데이터: OCRD(비즈니스 파트너 마스터) 직접 SELECT.
- * ⚠️ 원본에 대응 구현이 전혀 존재하지 않아
- * 원본의 메뉴·화면 메타 설정만으로 역설계함.
- * 대상 테이블(OCRD 비즈니스 파트너)은 메뉴명과 의미상 일치하나
- * 원본 컨트롤러로 확정하지 못한 추정 단계.
- * (로컬 스펙 문서 uncertainties 참조)
+ * 거래처 마스터(구) — OCRD(비즈니스 파트너) 직접 SELECT.
+ * '거래처 조회'(partners)가 대표 화면이라 메뉴에서는 숨김 상태다(중복 화면).
  * 패턴: 조회 목록 화면 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩).
  */
 import { PageHeader, SearchPanel, SearchField, DataGrid, type Column } from "@/components/erp";
@@ -134,7 +129,7 @@ export default async function PartnerMasterPage({
     <div>
       <PageHeader
         title="거래처 마스터(구)"
-        description="레퍼런스 정밀복제 — OCRD 기반(레거시 추정, uncertainties 참조)"
+        description="OCRD 기반 거래처 마스터 조회"
       />
 
       <SearchPanel>

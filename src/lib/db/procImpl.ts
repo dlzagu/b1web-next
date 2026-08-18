@@ -5,7 +5,7 @@
  * CF_STOCK(Gubun, SDT, EDT, ITEMCD, WHSCD, TYPE, CARDCD1, ETC)
  *  - Gubun='W' → 창고별 재고현황 
  *  - Gubun='J' → 재고전기리스트  — 4단 구성(기초/월소계/상세/연소계) + 누계.
- *    ⚠️ 원본 계약대로 수량 컬럼(INQTY·OUTQTY·Cumulated)은 **콤마 포맷 문자열**로 반환한다
+ *    ⚠️ 프로시저 계약상 수량 컬럼(INQTY·OUTQTY·Cumulated)은 **콤마 포맷 문자열**로 반환한다
  *      (화면이 parseNum 으로 콤마를 제거해 합산하고, 소계행은 DOCENTRY='' 로 판별).
  */
 import { getDb } from "./sqlite";
@@ -122,7 +122,7 @@ function warehouseStock(p: {
     OnHand: Number(r.OnHand),
     IsCommited: Number(r.IsCommited),
     OnOrder: Number(r.OnOrder),
-    // 가용 = 재고 - 약정 (원본 계약: 포맷 문자열)
+    // 가용 = 재고 - 약정 (포맷 문자열)
     GAYOUNG: comma(Number(r.OnHand) - Number(r.IsCommited)),
     FirmName: r.FirmName ?? "",
   }));

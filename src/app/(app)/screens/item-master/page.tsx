@@ -1,10 +1,6 @@
 /**
- * 품목 마스터(구) (레퍼런스 정밀복제)
- * 데이터: OITM(품목 마스터) 직접 SELECT. 원본에 메뉴만 있고
- * 실제 구현이 원본에 전혀 없음(미구현 메뉴 추정) —
- * 메뉴명을 근거로 표준 품목 마스터(구)를 재구성. 그리드 컬럼은
- * 원본의 화면 메타 설정에서 목록 노출 컬럼 11개를 채택.
- * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항)
+ * 품목 마스터(구) — OITM 직접 SELECT.
+ * '품목 조회'(items)가 대표 화면이라 메뉴에서는 숨김 상태다(중복 화면).
  * 패턴: 조회 목록 화면 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩).
  */
 import { PageHeader, SearchPanel, SearchField, DataGrid, type Column } from "@/components/erp";
@@ -132,7 +128,7 @@ export default async function ItemMasterPage({
 
   return (
     <div>
-      <PageHeader title="품목 마스터(구)" description="레퍼런스 정밀복제 — OITM 기반(레거시 미구현 메뉴, 표준 재구성)" />
+      <PageHeader title="품목 마스터(구)" description="OITM 기반 품목 마스터 조회" />
 
       <SearchPanel>
         <SearchField label="품목코드" name="sItemCode" defaultValue={sItemCode} placeholder="품목코드" />

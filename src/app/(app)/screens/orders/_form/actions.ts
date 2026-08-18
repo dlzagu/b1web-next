@@ -3,7 +3,7 @@
 /**
  * 판매주문 저장/취소 서버 액션 — 생성·수정·취소 오케스트레이션.
  * 쓰기는 SL 경유만(documents.ts). 상태 가드(취소/마감 문서 차단)는 여기서 HANA 읽기로 선검증.
- * 레거시 함정 미답습: 비멱등 POST 재시도 금지(client), 취소 전 상태검증(레거시엔 없음).
+ * 함정 회피: 비멱등 POST 재시도 금지(client), 취소 전 상태검증.
  */
 import { createSalesOrder, updateSalesOrder, cancelSalesOrder } from "@/lib/sl/documents";
 import { getSession } from "@/lib/auth/session";

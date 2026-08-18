@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * 구매오더 생성/수정 폼 — 레거시 DocBase.jsp(SAP B1 문서창) 재현. 판매오더 폼 미러.
+ * 구매오더 생성/수정 폼 — SAP B1 문서창 형태. 판매오더 폼 미러.
  * DocumentFormShell(재사용 셸) 위에 헤더 3열 + 탭(내용/상세/기타) + 하단 합계 + 액션바(저장/신규/취소/목록).
  * - 내용: 라인 그리드(품목 CFL·수량·단가·세금그룹·공급가액·세액·총계·납품예정일·창고)
  * - 상세: 참조번호·지불조건 / 기타: 비고·저널적요
  * - mode="edit": 공급처·통화·전기일·사업장은 게시 후 제약이라 읽기전용
- * - 저장은 savePurchaseOrder, 취소는 cancelPurchaseOrder 서버 액션(SL 경유, 레거시 페이로드 계약)
+ * - 저장은 savePurchaseOrder, 취소는 cancelPurchaseOrder 서버 액션(SL 페이로드 계약)
  * - 매입 라인은 VatGroup 이 SL 필수 → 기본값 V2 유지. CostingCode(코스트센터)는 생략 가능.
  */
 import { useMemo, useState, useTransition } from "react";
@@ -137,7 +137,7 @@ export default function PurchaseOrderForm({
     setSelected(new Set());
   };
 
-  // 세율(%) · 라인/합계 계산 (레거시 LineCal: 공급가액=수량×단가, 세액=round(공급가액×세율/100))
+  // 세율(%) · 라인/합계 계산 (공급가액=수량×단가, 세액=round(공급가액×세율/100))
   const rateOf = (vatGroup: string) => refs.vatGroups.find((v) => v.value === vatGroup)?.rate ?? 0;
   const supplyOf = (l: PurchaseOrderLineValue) => {
     const q = parseFloat(l.quantity);

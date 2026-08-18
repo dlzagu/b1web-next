@@ -1,6 +1,6 @@
 /**
  * 창고 재고 조회 (첫 파일럿 조회화면 / 조회 템플릿 1호)
- * 데이터: CF_STOCK(Gubun='W', ...) — 원본 창고재고 화면 대응.
+ * 데이터: CF_STOCK(Gubun='W', ...) — 창고별 재고 스냅샷.
  * 패턴: searchParams → callProc(화이트리스트) → DataGrid. Gubun/TYPE 등은 서버 고정(클라이언트 미노출).
  */
 import { PageHeader, SearchBar, DataGrid, type Column, type SearchFieldDef } from "@/components/erp";

@@ -1,13 +1,9 @@
 /**
- * 일자별 매출 집계 (분석 리포트 재설계)
- * 레거시 원본 부재(컨트롤러 미존재, dead menu — 상세는 이전 spec 참조) + 메뉴명이
- * '~현황(추이)'이므로 rules.md "분석 리포트 화면(집계형)" 룰에 따라 문서목록이 아닌
- * GROUP BY 집계 리포트로 재설계함(사용자 승인 2026-07-06).
+ * 일자별 매출 집계 — 문서목록이 아니라 GROUP BY 집계 리포트.
  *
  * 차원: 일자(TO_VARCHAR(DocDate,'YYYY-MM-DD')). 원천: OINV(CANCELED='N').
  * 측정: 전표건수(COUNT DISTINCT DocEntry), 매출액(SUM DocTotal).
  * 누계: 일자 오름차순 기준 누적 합계(WINDOW SUM), 화면 표시는 일자 내림차순 유지.
- * 원본 프로시저의 실버그(TOP1 결함·빈값 캐스팅 에러)는 재현하지 않음.
  */
 import { PageHeader, SearchBar, DataGrid, type Column, type SearchFieldDef } from "@/components/erp";
 import { TableBare, TBody, TR, TD } from "@/components/ui";
@@ -112,7 +108,7 @@ export default async function SalesDailyPage({
     <div>
       <PageHeader
         title="일자별 매출 집계"
-        description="일자별 매출 집계 — A/R송장(OINV) 기준(레거시 원본 부재, 메뉴명 기준 분석 리포트 재설계)"
+        description="일자별 매출 집계 — A/R송장(OINV) 기준"
       />
 
       <SearchBar

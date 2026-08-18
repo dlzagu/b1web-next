@@ -1,11 +1,7 @@
 /**
  * 월별 매출 추이 (분석 리포트 재설계)
  * 데이터: OINV(AR송장 헤더, CANCELED='N')를 DocDate 기준 월별(YYYY-MM)로 GROUP BY 집계.
- * ⚠️ 레거시 소스(레거시 원본)에는 이 화면()에 대응하는 컨트롤러가 존재하지 않음
- * (원본에 메뉴만 있고 구현이 없던 화면 — 형제 분석 메뉴 전부 동일 상태).
- * 재현할 실제 레거시 동작이 없어(dead menu), rules.md "분석 리포트 화면(집계형)" 룰에 따라
- * 메뉴명 의도(기간별 매출 집계 추이)에 부합하는 GROUP BY 집계 리포트로 재설계.
- * 판매 리포트 그룹의 데이터소스는 OINV 로 확정된 바 준용.
+ * 메뉴명 의도(월별 매출 집계 추이)에 맞춰 GROUP BY 집계 리포트로 설계했다.
  * (로컬 스펙 문서 uncertainties 참조 — 역설계 확정사항)
  * 패턴: 조회 목록 화면 복제 (force-dynamic, 동적 WHERE 조립 + 파라미터 바인딩, GROUP BY 집계형 + 비중%).
  */
@@ -119,7 +115,7 @@ export default async function SalesMonthlyPage({
     <div>
       <PageHeader
         title="월별 매출 추이"
-        description="분석 리포트(월별 집계) — OINV 기반 재설계(레거시 미구현 메뉴)"
+        description="월별 매출 집계 — OINV 기반"
       />
 
       <SearchBar

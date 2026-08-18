@@ -1,5 +1,5 @@
 /**
- * 판매오더 입력(생성) — 공유 OrderForm(create 모드), 레거시 DocBase식 문서폼.
+ * 판매오더 입력(생성) — 공유 OrderForm(create 모드), SAP B1 문서창식 폼.
  * 제목·액션바는 폼 내부 DocumentFormShell이 소유. 참조데이터는 서버 로드, 거래처·품목은 CflPicker.
  */
 import OrderForm from "../_form/OrderForm";

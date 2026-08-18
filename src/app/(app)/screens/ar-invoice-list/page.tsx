@@ -141,7 +141,7 @@ export default async function ArInvoiceListPage({
 
   return (
     <div>
-      <PageHeader title="수주 목록(구)" description="레퍼런스 정밀복제 — OINV 기반(레거시 실동작)" />
+      <PageHeader title="수주 목록(구)" description="OINV 기반 매출 문서 조회" />
 
       <SearchPanel>
         <SearchField label="문서번호" name="sDocNum" defaultValue={sDocNum} placeholder="문서번호" />
