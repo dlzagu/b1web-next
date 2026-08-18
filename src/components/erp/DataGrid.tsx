@@ -4,6 +4,9 @@
  *       인터랙티브 클라 그리드(DataTableClient)에 직렬화 가능한 형태로 넘긴다.
  *  → 화면(page.tsx)의 컬럼 정의는 종전 그대로. 헤더 클릭 정렬은 공통으로 자동 적용.
  *  → 함수 prop(render/getRowKey/sortValue)은 여기(서버)에서만 실행 → RSC 경계 안전.
+ *
+ * 피벗 리포트 지원(2026-08-18, W5071 재고 수불부): group / frozen / total 3종 컬럼 옵션 추가.
+ * 전부 optional 이라 기존 화면은 한 줄도 바뀌지 않는다(미지정 시 종전과 동일 렌더).
  */
 import type { ReactNode } from "react";
 import DataTableClient, { type HeaderMeta, type RowData, type SortType } from "./DataTableClient";
@@ -26,6 +29,14 @@ export type Column<T> = {
   filterable?: boolean;
   /** 컬럼 선택기에서 기본 숨김 (사용자가 켤 수 있음). storageKey 있는 그리드에서만 의미 */
   defaultHidden?: boolean;
+  /** 2단 헤더 상단 그룹 라벨. 연속된 같은 값이 colSpan 으로 묶인다 (예: "1월" 아래 입고/출고/재고) */
+  group?: string;
+  /** 좌측 고정열 — 가로 스크롤 시 붙박이. 선두부터 연속된 frozen 컬럼만 적용된다 */
+  frozen?: boolean;
+  /** 하단 합계행에 이 컬럼의 열합계를 표시 (정렬값 v 기준, 컬럼 필터 결과에 연동) */
+  total?: "sum";
+  /** 하단 합계행에 표시할 고정 라벨 (예: 첫 컬럼의 "합계") */
+  totalLabel?: string;
 };
 
 function resolveSortType<T>(c: Column<T>): SortType {
@@ -80,6 +91,10 @@ export default function DataGrid<T extends Record<string, unknown>>({
     sortType: resolveSortType(c),
     filterable: !!c.filterable,
     defaultHidden: !!c.defaultHidden,
+    group: c.group,
+    frozen: !!c.frozen,
+    total: c.total,
+    totalLabel: c.totalLabel,
   }));
 
   const data: RowData[] = rows.map((row, i) => ({

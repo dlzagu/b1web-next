@@ -15,8 +15,8 @@ export type SearchFieldDef = {
   /** URL query 키 = 서버 WHERE 파라미터 */
   name: string;
   label: string;
-  /** cfl=마스터 모달검색 / select=드롭다운 / 그 외=입력 */
-  kind?: "text" | "date" | "number" | "select" | "cfl";
+  /** cfl=마스터 모달검색 / select=드롭다운 / hidden=화면 밖 상태값 / 그 외=입력 */
+  kind?: "text" | "date" | "number" | "select" | "cfl" | "hidden";
   /** kind:"cfl" 소스 (Customer/Vendor/Item/Warehouse/BusinessPlace/SalesEmployee/Owner/ItemGroup) */
   cflType?: string;
   /** kind:"select" 옵션 */
@@ -45,7 +45,10 @@ export function SearchBar({
   /** 지정 시 조건 선택 + 표시필드 localStorage 영속화 (사용자별·화면별 키) */
   storageKey?: string;
 }) {
-  const defaults = () => fields.filter((f) => f.defaultShown !== false).map((f) => f.name);
+  // hidden 필드(탭 등 화면 상태값)는 조건 선택기 대상이 아니며 항상 제출된다 — 조회해도 상태가 풀리지 않게.
+  const visibleFields = fields.filter((f) => f.kind !== "hidden");
+  const hiddenFields = fields.filter((f) => f.kind === "hidden");
+  const defaults = () => visibleFields.filter((f) => f.defaultShown !== false).map((f) => f.name);
   const [shown, setShown] = useState<string[]>(defaults);
   const [open, setOpen] = useState(false);
   const chooserRef = useRef<HTMLDivElement>(null);
@@ -107,7 +110,7 @@ export function SearchBar({
   };
 
   // config 순서 유지
-  const shownFields = fields.filter((f) => shown.includes(f.name));
+  const shownFields = visibleFields.filter((f) => shown.includes(f.name));
 
   const chooser = storageKey ? (
     <div className="relative" ref={chooserRef}>
@@ -118,7 +121,7 @@ export function SearchBar({
         className="inline-flex items-center gap-1.5 rounded-field border border-border px-2.5 py-1.5 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
       >
         <SlidersIcon />
-        조건 <span className="tabular-nums text-faint">{shownFields.length}/{fields.length}</span>
+        조건 <span className="tabular-nums text-faint">{shownFields.length}/{visibleFields.length}</span>
       </button>
       {open && (
         <div className="absolute right-0 z-30 mt-1 w-60 overflow-hidden rounded-card border border-border bg-surface shadow-card">
@@ -129,7 +132,7 @@ export function SearchBar({
             </button>
           </div>
           <div className="c4-scroll max-h-72 overflow-y-auto p-1.5">
-            {fields.map((f) => {
+            {visibleFields.map((f) => {
               const on = shown.includes(f.name);
               return (
                 <label
@@ -153,6 +156,9 @@ export function SearchBar({
     <div>
       {chooser && <div className="mb-1 flex items-center justify-end">{chooser}</div>}
       <SearchPanel>
+        {hiddenFields.map((f) => (
+          <input key={f.name} type="hidden" name={f.name} value={values[f.name] ?? ""} readOnly />
+        ))}
         {shownFields.map((f) =>
           f.kind === "cfl" && f.cflType ? (
             <CflField
@@ -168,7 +174,7 @@ export function SearchBar({
               key={f.name}
               label={f.label}
               name={f.name}
-              type={f.kind === "cfl" ? "text" : (f.kind ?? "text")}
+              type={f.kind === "cfl" || f.kind === "hidden" ? "text" : (f.kind ?? "text")}
               defaultValue={values[f.name] ?? ""}
               placeholder={f.placeholder}
               options={f.options}

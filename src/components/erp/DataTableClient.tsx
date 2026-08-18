@@ -6,7 +6,7 @@
  *  → render 콜백은 서버에서 실행되고, 여기선 정렬/필터/페이징/컬럼이동·리사이즈만 클라에서 처리.
  * 기능: 헤더 클릭 정렬 · 컬럼 드래그 순서변경 · 컬럼 너비 리사이즈 · 스티키 헤더 · 가시영역 내 스크롤바.
  */
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   useReactTable,
@@ -41,6 +41,14 @@ export type HeaderMeta = {
   filterable: boolean;
   /** 컬럼 선택기에서 기본 숨김(사용자가 켤 수 있음) */
   defaultHidden?: boolean;
+  /** 2단 헤더 상단 그룹 라벨 — 연속된 같은 값이 colSpan 으로 묶인다 */
+  group?: string;
+  /** 좌측 고정열 (선두 연속 구간만 적용) */
+  frozen?: boolean;
+  /** 하단 합계행 열합계 표시 */
+  total?: "sum";
+  /** 하단 합계행 고정 라벨 */
+  totalLabel?: string;
 };
 export type CellData = { v: string | number | undefined; node: ReactNode };
 export type RowData = { key: string | number; cells: CellData[]; href?: string };
@@ -257,6 +265,53 @@ export default function DataTableClient({
   const showFilterRow = filterable && headers.some((h) => h.filterable);
   const totalWidth = table.getTotalSize();
 
+  // ── 피벗 리포트 지원 (2026-08-18) — group/frozen/total 미지정이면 전부 비활성 = 종전 렌더 ──
+  const metaByKey = useMemo(() => new Map(headers.map((h) => [h.key, h])), [headers]);
+  const leafHeaders = headerGroup?.headers ?? [];
+
+  /** 좌측 고정열 오프셋 — 화면에 보이는 순서 기준 '선두부터 연속된 frozen' 구간만.
+   *  사용자가 컬럼을 드래그로 옮기면 연속이 깨져 자연히 해제된다(레이아웃 붕괴 방지). */
+  const frozenLeft = new Map<string, number>();
+  {
+    let acc = 0;
+    for (const h of leafHeaders) {
+      if (!metaByKey.get(h.column.id)?.frozen) break;
+      frozenLeft.set(h.column.id, acc);
+      acc += h.getSize();
+    }
+  }
+  const frozenStyle = (id: string): CSSProperties => {
+    const left = frozenLeft.get(id);
+    return left === undefined ? {} : { position: "sticky", left };
+  };
+  const isFrozen = (id: string) => frozenLeft.has(id);
+
+  // 2단 그룹 헤더 — 연속된 동일 group 라벨을 colSpan 으로 묶고, 그룹 없는 컬럼은 빈 칸 1개씩
+  const hasGroupRow = headers.some((h) => h.group);
+  const groupRuns: { label: string | null; span: number; key: string }[] = [];
+  if (hasGroupRow) {
+    for (const h of leafHeaders) {
+      const g = metaByKey.get(h.column.id)?.group ?? null;
+      const last = groupRuns[groupRuns.length - 1];
+      if (last && g !== null && last.label === g) last.span += 1;
+      else groupRuns.push({ label: g, span: 1, key: h.column.id });
+    }
+  }
+
+  // 컬럼 정렬 합계행 — 정렬용 원시값(v)을 합산하므로 컬럼 필터 결과에 자동 연동된다
+  const hasTotalsRow = headers.some((h) => h.total || h.totalLabel);
+  const totalsCells = hasTotalsRow
+    ? leafHeaders.map((h) => {
+        const m = metaByKey.get(h.column.id);
+        if (m?.total === "sum") {
+          const idx = headers.findIndex((x) => x.key === h.column.id);
+          const sum = bodyRows.reduce((a, r) => a + (Number(r.original.cells[idx]?.v) || 0), 0);
+          return sum.toLocaleString(undefined, { maximumFractionDigits: 3 });
+        }
+        return m?.totalLabel ?? "";
+      })
+    : [];
+
   // 리스트 영역 높이를 화면에 맞춤 — 세로로 길어도 합계(footer)·가로 스크롤바가 뷰포트 안에 들어오게.
   // ref의 style을 직접 조작(setState 아님) → 리렌더/린트 이슈 없음.
   useEffect(() => {
@@ -343,7 +398,32 @@ export default function DataTableClient({
           너비: 컬럼합이 좁으면 width:100%로 비율대로 펼쳐 화면을 꽉 채우고, 넓으면 minWidth로 가로 스크롤. */}
       <div ref={scrollRef} className="c4-scroll overflow-auto rounded-card border border-border">
         <table className="border-collapse text-sm" style={{ width: "100%", minWidth: totalWidth, tableLayout: "fixed" }}>
+          {/* table-layout:fixed 는 '첫 행'으로 폭을 잡는다 — 그룹헤더(colSpan)가 첫 행이 되면 폭이 무너지므로
+              colgroup 으로 컬럼 폭을 명시해 첫 행과 무관하게 고정한다. */}
+          <colgroup>
+            {leafHeaders.map((h) => (
+              <col key={h.id} style={{ width: h.getSize() }} />
+            ))}
+          </colgroup>
           <THead className="sticky top-0 z-10">
+            {hasGroupRow && (
+              <TR className="border-b border-border">
+                {groupRuns.map((run) => (
+                  <TH
+                    key={run.key}
+                    colSpan={run.span}
+                    style={run.span === 1 ? frozenStyle(run.key) : undefined}
+                    className={cn(
+                      "bg-surface-2 text-center",
+                      run.label ? "border-l border-border" : "",
+                      run.span === 1 && isFrozen(run.key) && "z-20",
+                    )}
+                  >
+                    {run.label ?? ""}
+                  </TH>
+                ))}
+              </TR>
+            )}
             <TR className="border-b border-border">
               {headerGroup.headers.map((header) => {
                 const meta = header.column.columnDef.meta;
@@ -352,8 +432,13 @@ export default function DataTableClient({
                 return (
                   <TH
                     key={header.id}
-                    style={{ width: header.getSize(), position: "relative" }}
-                    className={cn(alignCls(meta?.align), "bg-surface-2", dragCol === header.column.id && "opacity-40")}
+                    style={{ width: header.getSize(), position: "relative", ...frozenStyle(header.column.id) }}
+                    className={cn(
+                      alignCls(meta?.align),
+                      "bg-surface-2",
+                      isFrozen(header.column.id) && "z-20",
+                      dragCol === header.column.id && "opacity-40",
+                    )}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -407,7 +492,11 @@ export default function DataTableClient({
             {showFilterRow && (
               <TR className="border-b border-border">
                 {headerGroup.headers.map((header) => (
-                  <TH key={header.id} style={{ width: header.getSize() }} className="bg-surface-2 py-1">
+                  <TH
+                    key={header.id}
+                    style={{ width: header.getSize(), ...frozenStyle(header.column.id) }}
+                    className={cn("bg-surface-2 py-1", isFrozen(header.column.id) && "z-20")}
+                  >
                     {header.column.getCanFilter() ? (
                       <input
                         value={(header.column.getFilterValue() as string) ?? ""}
@@ -445,7 +534,7 @@ export default function DataTableClient({
                 return (
                   <TR
                     key={row.id}
-                    className={cn("hover:bg-surface-2", activate && "cursor-pointer")}
+                    className={cn("group hover:bg-surface-2", activate && "cursor-pointer")}
                     {...(activate
                       ? {
                           role: onRowSelect ? "button" : "link",
@@ -465,8 +554,12 @@ export default function DataTableClient({
                       return (
                         <TD
                           key={cell.id}
-                          style={{ width: cell.column.getSize() }}
-                          className={cn(alignCls(meta?.align), "overflow-hidden text-ellipsis")}
+                          style={{ width: cell.column.getSize(), ...frozenStyle(cell.column.id) }}
+                          className={cn(
+                            alignCls(meta?.align),
+                            "overflow-hidden text-ellipsis",
+                            isFrozen(cell.column.id) && "z-[1] bg-surface group-hover:bg-surface-2",
+                          )}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TD>
@@ -477,6 +570,28 @@ export default function DataTableClient({
               })
             )}
           </TBody>
+          {hasTotalsRow && !loading && bodyRows.length > 0 && (
+            <tfoot className="sticky bottom-0 z-10">
+              <TR className="border-t border-border-strong">
+                {leafHeaders.map((h, i) => {
+                  const m = metaByKey.get(h.column.id);
+                  return (
+                    <TD
+                      key={h.id}
+                      style={{ width: h.getSize(), ...frozenStyle(h.column.id) }}
+                      className={cn(
+                        alignCls(m?.align),
+                        "bg-surface-2 font-semibold text-foreground",
+                        isFrozen(h.column.id) && "z-20",
+                      )}
+                    >
+                      {totalsCells[i]}
+                    </TD>
+                  );
+                })}
+              </TR>
+            </tfoot>
+          )}
         </table>
       </div>
 

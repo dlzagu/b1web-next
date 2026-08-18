@@ -9,3 +9,4 @@ export { InfoField, DetailLabel } from "./InfoField";
 export { DetailTabs, type DetailTab } from "./DetailTabs";
 export { DocumentFormShell, type DocTab } from "./DocumentFormShell";
 export { FieldSet, type FieldDef } from "./FieldSet";
+export { default as TabNav, type TabNavItem } from "./TabNav";
