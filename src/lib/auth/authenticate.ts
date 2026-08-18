@@ -19,6 +19,12 @@ type AuthResult = Omit<SessionUser, "exp"> | null;
 
 /** 데모 계정 — 공개 저장소이므로 비밀번호는 README 에 명시된 데모용이다 */
 export const DEMO_USER = "demo";
+/**
+ * 데모 비밀번호 — **의도적으로 공개**다(README·로그인 화면에도 그대로 노출).
+ * 포트폴리오 방문자가 계정을 몰라 첫 화면에서 이탈하지 않도록 '둘러보기' 버튼이 이 값을 쓴다.
+ * 이 계정으로 접근 가능한 것은 전부 가상 시드 데이터뿐이라 얻을 수 있는 권한이 없다.
+ */
+export const DEMO_PASSWORD = "demo1234";
 /** bcrypt("demo1234", 10) — 값이 노출돼도 가상 데이터 데모 외에는 아무 권한이 없다 */
 const DEMO_HASH =
   "$2b$10$RbHy.dQc9YpjZtLYgr8amei6QElWvwexpBMj2..wduD9G7W.c48iK";

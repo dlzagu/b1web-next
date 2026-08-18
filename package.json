@@ -14,7 +14,8 @@
     "smoke": "tsx scripts/erp-smoke.ts",
     "db:reset": "node -e \"const fs=require('fs');fs.rmSync('.data',{recursive:true,force:true});if(fs.existsSync('.data')){console.error('[db:reset] .data 삭제 실패 — dev 서버가 DB 를 잡고 있습니다. 서버를 끄고 다시 실행하세요.');process.exit(1)}console.log('[db:reset] 완료 — 다음 실행 때 재시드됩니다')\"",
     "verify": "npm run lint && npm run typecheck && npm run smoke",
-    "lock:fix": "node scripts/sync-lock-wasm-deps.mjs"
+    "lock:fix": "node scripts/sync-lock-wasm-deps.mjs",
+    "shots": "tsx scripts/shots.mts"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
@@ -38,6 +39,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "puppeteer-core": "^25.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.5",
     "typescript": "^5"

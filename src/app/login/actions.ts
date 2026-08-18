@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { authenticate } from "@/lib/auth/authenticate";
+import { DEMO_PASSWORD, DEMO_USER, authenticate } from "@/lib/auth/authenticate";
 import { createSession, destroySession } from "@/lib/auth/session";
 
 export type LoginState = { error?: string };
@@ -22,6 +22,18 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   }
   if (!user) return { error: "아이디 또는 비밀번호가 올바르지 않습니다." };
 
+  await createSession(user);
+  redirect("/");
+}
+
+/**
+ * 데모 계정 원클릭 로그인 — 포트폴리오 방문자용.
+ * 계정을 모르는 방문자가 로그인 폼만 보고 이탈하는 것을 막는 게 목적이다.
+ * 일반 로그인과 **같은 인증 경로**를 타므로 우회로가 아니다(권한도 동일하게 데모 데이터뿐).
+ */
+export async function demoLoginAction(): Promise<void> {
+  const user = await authenticate(DEMO_USER, DEMO_PASSWORD);
+  if (!user) throw new Error("데모 계정 인증에 실패했습니다.");
   await createSession(user);
   redirect("/");
 }
