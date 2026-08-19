@@ -12,6 +12,7 @@
  *  7. 재고 입출고 대장 대사 — 화면과 같은 CTE 를 게이트웨이로 실행, 기말잔고 = OITW.OnHand
  *  8. 수주 진행 현황 체인 롤업 — 납품수량 두 방식 일치 · 납품−미청구=송장 · 2단 체인 유지
  *  9. 매입 분석·재고 분포 대사 — A/P송장 취소 후 양 축 동일 제외·축간 일치 · 피벗 원본 등식
+ *  10. 매출 피벗 대사 — 화면 SQL 을 그대로 실행해 헤더 총합과 대사 · A/R송장 취소 반영
  *
  * 🔴 항상 **메모리 DB** 로 돈다 — 스모크가 만드는 검증용 문서가 로컬 데모 DB(.data)를
  *    오염시키면 대시보드 '최근 트랜잭션'에 테스트 흔적이 남는다. import 전에 env 를 세팅해야
@@ -598,6 +599,80 @@ ${CHAIN_JOINS}${where ? ` AND ${where}` : ""}`,
     "품목별 재고 분포 합 = OITW 전체 합",
     Math.abs(Number(pivotTotal[0].S) - Number(pivotByItem[0].S)) < 0.001,
     `${Number(pivotTotal[0].S).toLocaleString()}`,
+  );
+
+  console.log("\n[10] 매출 피벗 대사");
+  // 화면(sales-pivot)이 쓰는 **바로 그 SQL 조립부**를 불러 돌린다 — 스모크가 쿼리를 따로
+  // 재작성하면 화면 쪽 회귀(측정값 교체·바인딩 순서·기간 어긋남)를 영원히 못 잡는다.
+  // 실제로 적대적 검증에서 GTotal → LineTotal 사보타주가 verify 를 그대로 통과했다.
+  const { buildSalesPivotQuery, monthBuckets, sumBuckets, PIVOT_MAX_DISPLAY } = await import(
+    "../src/lib/report/salesPivot"
+  );
+  const span = await query<{ MaxD: string | null }>(
+    `SELECT MAX("DocDate") AS "MaxD" FROM "OINV" WHERE "CANCELED" = 'N'`,
+  );
+  const pYear = Number(String(span[0]?.MaxD ?? "").slice(0, 4)) || new Date().getFullYear();
+  const pBuckets = monthBuckets(pYear, 12);
+  const pFrom = `${pYear}-01-01`;
+  const pTo = `${pYear}-12-31`;
+
+  /** 우변 — 문서 헤더 합계(라인이 아니라 DocTotal) */
+  const headerTotal = async (): Promise<number> => {
+    const r = await query<{ S: number }>(
+      `SELECT SUM(TO_DECIMAL("DocTotal",19,2)) AS "S" FROM "OINV"
+        WHERE "CANCELED" = 'N' AND "DocDate" BETWEEN ? AND ?`,
+      [pFrom, pTo],
+    );
+    return Number(r[0]?.S ?? 0);
+  };
+  /** 좌변 — 화면이 그리는 모든 셀의 합 */
+  const pivotAxis = async (tab: "partner" | "item"): Promise<{ total: number; groups: number }> => {
+    const { sql, params } = buildSalesPivotQuery({ tab, year: pYear, buckets: pBuckets });
+    const rows = await query<Record<string, unknown>>(sql, params);
+    return { total: sumBuckets(rows, pBuckets), groups: rows.length };
+  };
+
+  const byPartner = await pivotAxis("partner");
+  const byItem = await pivotAxis("item");
+  const hdrBefore = await headerTotal();
+
+  check(
+    "표시 상한 미도달 — 합계가 절단된 집합의 합이 아님",
+    byPartner.groups < PIVOT_MAX_DISPLAY && byItem.groups < PIVOT_MAX_DISPLAY,
+    `거래처 ${byPartner.groups} · 품목 ${byItem.groups} < ${PIVOT_MAX_DISPLAY}`,
+  );
+  // 🔴 **레벨을 가로지르는** 등식이라야 회귀를 잡는다 — 좌변은 라인(INV1.GTotal), 우변은 헤더(OINV.DocTotal).
+  //    '거래처축 총합 = 품목축 총합' 은 같은 조인 결과를 다르게 GROUP BY 한 것뿐이라 항등식이다.
+  //    그것만 넣으면 [9] 에서 저질렀던 '절대 실패할 수 없는 검사'를 그대로 반복하게 된다.
+  check(
+    "피벗 셀 총합 = OINV 헤더 총합 (거래처축)",
+    Math.abs(byPartner.total - hdrBefore) < 0.001,
+    `${byPartner.total.toLocaleString()} = ${hdrBefore.toLocaleString()}`,
+  );
+  check(
+    "품목축도 같은 총합",
+    Math.abs(byItem.total - hdrBefore) < 0.001,
+    `${byItem.total.toLocaleString()}`,
+  );
+
+  // CANCELED='N' 은 시드에 취소 A/R송장이 0건이라 **한 번도 실행되지 않는 죽은 분기**였다.
+  // 실제로 취소를 발생시켜 필터가 살아있는지 확인한다(빼먹으면 여기서 이중계상으로 드러난다).
+  const invVictim = (
+    await query<{ DocEntry: number; DocTotal: number }>(
+      `SELECT "DocEntry", "DocTotal" FROM "OINV"
+        WHERE "CANCELED" = 'N' AND "DocDate" BETWEEN ? AND ?
+        ORDER BY "DocEntry" DESC LIMIT 1`,
+      [pFrom, pTo],
+    )
+  )[0];
+  engineCancel("Invoices", invVictim.DocEntry);
+  const afterPartner = await pivotAxis("partner");
+  const hdrAfter = await headerTotal();
+  check(
+    "A/R송장 취소가 피벗·헤더에서 동일하게 빠짐 (CANCELED 분기 실행)",
+    Math.abs(byPartner.total - afterPartner.total - Number(invVictim.DocTotal)) < 0.001 &&
+      Math.abs(hdrBefore - hdrAfter - Number(invVictim.DocTotal)) < 0.001,
+    `−${Number(invVictim.DocTotal).toLocaleString()}`,
   );
 
   getDb();

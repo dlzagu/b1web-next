@@ -19,38 +19,23 @@ import {
 } from "@/components/erp";
 import { query } from "@/lib/db/hana";
 import { getSession } from "@/lib/auth/session";
+import {
+  buildSalesPivotQuery,
+  monthBuckets,
+  PIVOT_MAX_DISPLAY,
+  type PivotBucket as Bucket,
+} from "@/lib/report/salesPivot";
 
 export const dynamic = "force-dynamic";
 
 type Row = Record<string, unknown>;
-type Bucket = { key: string; label: string; from: string; to: string };
 
-const MAX_DISPLAY = 200;
+const MAX_DISPLAY = PIVOT_MAX_DISPLAY;
 
 function fmtAmt(v: unknown): string {
   const n = Number(v ?? 0);
   if (!Number.isFinite(n) || n === 0) return ""; // 0 은 빈칸 — 분포 가독성
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-function lastDayOf(year: number, month: number): number {
-  return new Date(year, month, 0).getDate();
-}
-/** 1월~종료월 고정 버킷 — 실데이터에서 월을 뽑으면 매출 없는 달이 열에서 사라진다 */
-function monthBuckets(year: number, endMonth: number): Bucket[] {
-  const out: Bucket[] = [];
-  for (let m = 1; m <= endMonth; m += 1) {
-    out.push({
-      key: `m${m}`,
-      label: `${m}월`,
-      from: `${year}-${pad2(m)}-01`,
-      to: `${year}-${pad2(m)}-${pad2(lastDayOf(year, m))}`,
-    });
-  }
-  return out;
 }
 
 export default async function SalesPivotPage({
@@ -102,45 +87,16 @@ export default async function SalesPivotPage({
     sMonth = Number.isInteger(wantM) && wantM >= 1 && wantM <= cap ? wantM : cap;
     buckets = monthBuckets(sYear, sMonth);
 
-    // 버킷별 SUM(CASE …) 동적 조립 — 값은 전부 ? 바인딩(식별자만 코드 상수)
-    const aggSel = buckets.map(
-      (b) => `SUM(CASE WHEN h."DocDate" BETWEEN ? AND ? THEN l."GTotal" ELSE 0 END) AS "${b.key}"`,
-    );
-    const params: (string | number)[] = buckets.flatMap((b) => [b.from, b.to]);
-
-    const where: string[] = [`h."CANCELED" = 'N'`, `h."DocDate" BETWEEN ? AND ?`];
-    params.push(`${sYear}-01-01`, buckets[buckets.length - 1]?.to ?? `${sYear}-12-31`);
-    if (sCardCode) {
-      where.push(`h."CardCode" = ?`);
-      params.push(sCardCode);
-    }
-    if (tab === "item" && sItemGrp) {
-      where.push(`l."ItemCode" IN (SELECT "ItemCode" FROM "OITM" WHERE "ItmsGrpCod" = ?)`);
-      params.push(Number(sItemGrp));
-    }
-    if (tab === "item" && sItemCd) {
-      where.push(`l."ItemCode" = ?`);
-      params.push(sItemCd);
-    }
-
-    const sql =
-      tab === "partner"
-        ? `SELECT h."CardCode" AS "K1", h."CardName" AS "K2", ${aggSel.join(", ")}
-           FROM "OINV" h JOIN "INV1" l ON l."DocEntry" = h."DocEntry"
-           WHERE ${where.join(" AND ")}
-           GROUP BY h."CardCode", h."CardName"
-           ORDER BY SUM(l."GTotal") DESC
-           LIMIT ${MAX_DISPLAY}`
-        : `SELECT l."ItemCode" AS "K1", COALESCE(i."ItemName", l."Dscription") AS "K2",
-                  COALESCE(g."ItmsGrpNam", '') AS "K3", ${aggSel.join(", ")}
-           FROM "OINV" h
-           JOIN "INV1" l ON l."DocEntry" = h."DocEntry"
-           LEFT JOIN "OITM" i ON i."ItemCode" = l."ItemCode"
-           LEFT JOIN "OITB" g ON g."ItmsGrpCod" = i."ItmsGrpCod"
-           WHERE ${where.join(" AND ")}
-           GROUP BY l."ItemCode", COALESCE(i."ItemName", l."Dscription"), COALESCE(g."ItmsGrpNam", '')
-           ORDER BY SUM(l."GTotal") DESC
-           LIMIT ${MAX_DISPLAY}`;
+    // SQL 조립은 공유 모듈 정본 — 스모크 [10] 이 **이 함수가 만든 쿼리** 를 그대로 돌려
+    // 헤더 합계(OINV.DocTotal)와 대사한다(측정값·바인딩순서·기간 회귀를 잡는 유일한 장치).
+    const { sql, params } = buildSalesPivotQuery({
+      tab,
+      year: sYear,
+      buckets,
+      sCardCode,
+      sItemGrp,
+      sItemCd,
+    });
 
     const raw = await query<Record<string, string | number | null>>(sql, params);
 
@@ -247,7 +203,11 @@ export default async function SalesPivotPage({
       <SearchBar
         fields={SEARCH_FIELDS}
         values={{ sYear: String(sYear), sMonth: String(sMonth), sCardCode, sItemGrp, sItemCd, tab }}
-        storageKey={`b1w:search:sales-pivot:${user?.uid ?? "anon"}`}
+        // 🔴 저장키에 탭을 넣는다 — 탭마다 조건 필드 집합이 다르고(품목별에만 품목그룹·품목),
+        // SearchBar 는 로드 시 '현재 탭에 없는 필드'를 잘라내 다시 저장한다. 키를 공유하면
+        // 거래처별 탭을 한 번 들르는 것만으로 품목별 탭의 두 조건이 화면에서 영구히 사라지고,
+        // URL 로 걸린 필터가 표시 없이 적용되다 [조회]에서 조용히 풀린다(적대적 검증에서 재현).
+        storageKey={`b1w:search:sales-pivot:${tab}:${user?.uid ?? "anon"}`}
       />
 
       {error ? (

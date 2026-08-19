@@ -163,11 +163,28 @@ export default function DataTableClient({
           if (p.visibility) visibility = p.visibility;
           if (p.sizing) sizing = p.sizing;
           if (p.order?.length) {
-            // 저장된 순서 + 이후 추가된 새 컬럼은 뒤에 붙임(스키마 변화에 견고)
+            // 저장된 순서를 복원하되, 저장 이후 새로 생긴 컬럼은 **기본 순서상의 제자리**에 끼워 넣는다.
+            // 🔴 '맨 뒤에 붙이기'로 하면 동적 컬럼 화면이 깨진다 — 피벗은 [고정열…│동적 m1..mN│합계]
+            // 구조라, 기준월을 3월로 좁혔다(저장) 8월로 넓히면 m4..m8 이 합계열 *뒤에* 붙어
+            // 최종 순서가 …3월│연간 합계│4월…8월 이 된다. 3월 옆 칸의 '연간 합계'가 1~3월 소계처럼
+            // 읽혀 사용자가 틀린 숫자를 본다(적대적 검증에서 재현). 창고 열이 동적인 화면도 동일.
             const keys = headers.map((h) => h.key);
-            const known = p.order.filter((k) => keys.includes(k));
-            const missing = keys.filter((k) => !known.includes(k));
-            order = [...known, ...missing];
+            const merged = p.order.filter((k) => keys.includes(k));
+            keys.forEach((k, i) => {
+              if (merged.includes(k)) return;
+              // 기본 순서에서 바로 앞에 있으면서 이미 배치된 컬럼을 찾아 그 뒤에 넣는다.
+              // (앞선 것이 하나도 없으면 맨 앞 = 기본 순서의 선두 컬럼)
+              let at = 0;
+              for (let j = i - 1; j >= 0; j -= 1) {
+                const idx = merged.indexOf(keys[j]);
+                if (idx >= 0) {
+                  at = idx + 1;
+                  break;
+                }
+              }
+              merged.splice(at, 0, k);
+            });
+            order = merged;
           }
         }
       } catch {
