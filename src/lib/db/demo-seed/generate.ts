@@ -6,7 +6,7 @@
  * 그래서 OpenQty·LineStatus·DocStatus·Base 체인·재고원장(OINM)·분개(OJDT)의
  * 불변식이 계산이 아니라 **구성으로** 보장된다 — 시드가 곧 엔진 통합 테스트다.
  */
-import type { DemoDb } from "../sqlite";
+import { runInTransaction, type DemoDb } from "../sqlite";
 import { SCHEMA_SQL } from "./schema";
 import {
   engineCancel,
@@ -62,7 +62,7 @@ export function ensureSeed(db: DemoDb): void {
   const t0 = Date.now();
   // 🔴 전체를 한 트랜잭션으로 — 중간에 실패하면 통째로 롤백되어야 한다.
   //    (완료 마커까지 같은 트랜잭션에 넣어야 '반쪽 DB 가 완료로 보이는' 상태가 안 생긴다)
-  db.transaction(() => {
+  runInTransaction(db, () => {
     db.exec(SCHEMA_SQL);
     seedMasters(db);
     seedDocuments(db);
@@ -71,7 +71,7 @@ export function ensureSeed(db: DemoDb): void {
     db.prepare(`INSERT INTO "${SEED_DONE_TABLE}" ("seededAt") VALUES (?)`).run(
       new Date().toISOString(),
     );
-  }).immediate();
+  });
 
   const docs = db
     .prepare(

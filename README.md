@@ -16,8 +16,9 @@
 
 [![대시보드](docs/images/dashboard.png)](https://b1web-next.vercel.app)
 
-> 서버리스 환경에서는 데모 DB가 메모리에 뜨므로(콜드스타트마다 재시드) 생성·수정한 문서는
-> 인스턴스가 살아있는 동안만 유지됩니다. 쓰기 흐름 전체를 보시려면 로컬 실행을 권장합니다.
+> **만든 문서는 실제로 남습니다.** 배포본은 공유 DB(libSQL/Turso)를 보므로 오더를 만들고
+> 납품·송장으로 이어가는 흐름을 그대로 시연할 수 있습니다. 다만 방문자가 모두 같은 데이터를
+> 보기 때문에, 매일 03:00(KST) 가상 데이터를 원상복구합니다 — 만들어 보셔도 됩니다.
 
 ## 실행
 
@@ -32,8 +33,15 @@ npm run dev        # http://localhost:3000
 ```bash
 npm run verify     # lint → typecheck → smoke (완료 판정 기준)
 npm run smoke      # 데모 ERP 스모크 51항목 (아래 '검증' 참조)
-npm run db:reset   # 데모 DB 삭제 → 다음 실행 때 재시드
+npm run db:reset   # 로컬 데모 DB 삭제 → 다음 실행 때 재시드
 npm run shots      # README 스크린샷 재생성 (설치된 Chrome/Edge 사용, dev 서버 필요)
+```
+
+배포본이 쓰는 **공유 DB**(선택 — `TURSO_DATABASE_URL` 이 있을 때만):
+
+```bash
+npm run turso:reset    # 공유 DB 전체 삭제 → 가상 시드 재적재 (매일 크론이 자동 실행)
+npm run turso:verify   # 공유 DB 점검 (읽기 전용 — 화면이 쓰는 조회 경로로 대사)
 ```
 
 ## 무엇을 보여주는 프로젝트인가
@@ -54,18 +62,22 @@ npm run shots      # README 스크린샷 재생성 (설치된 Chrome/Edge 사용
 브라우저 (Next.js 16 App Router · React 19)
     │  Server Component 가 데이터 계층을 직접 호출
     ├─ 조회 ─→ src/lib/db/hana.ts   (read-only 게이트웨이)
-    │            └ src/lib/db/sqlite.ts — HANA 호환 계층
+    │            └ src/lib/db/sqlite.ts — HANA 호환 계층 + 접속 대상 결정
     └─ 쓰기 ─→ src/lib/sl/documents.ts (문서 계약)
                  └ src/lib/sl/localErp.ts — ERP 엔진
                           ▼
-                 SQLite (better-sqlite3) + 가상 시드
+              libSQL — 로컬 파일 / 메모리 / 공유 DB(Turso) + 가상 시드
 ```
 
 **HANA 호환 계층이 이 프로젝트의 기술 핵심입니다.** 화면 쿼리는 실제 SAP B1(HANA) 환경에 그대로
 얹을 수 있도록 HANA 문법(`SELECT TOP`·`TO_VARCHAR`·`TO_DECIMAL`·`DAYS_BETWEEN`)으로 씁니다.
-대신 데모는 외부 DB 없이 돌아야 하므로, SQLite 어댑터가 커스텀 SQL 함수를 등록하고 `TOP`을
-재작성해 **화면 쿼리를 한 줄도 고치지 않고** DB만 바꿔 끼웁니다. 저장 프로시저(`CF_STOCK`)도
+대신 데모는 외부 DB 없이 돌아야 하므로, 어댑터가 그 문법을 순수 SQLite 식으로 재작성해
+**화면 쿼리를 한 줄도 고치지 않고** DB만 바꿔 끼웁니다. 저장 프로시저(`CF_STOCK`)도
 결과셋 계약을 지키는 TS 구현으로 대체했습니다.
+
+로컬 파일·테스트용 메모리·배포용 공유 DB가 **같은 코드 경로**를 탑니다 — 다른 것은 접속 대상뿐입니다.
+쓰기가 서버리스에서도 남도록 드라이버를 libSQL로 바꾼 판단과 그때 감수한 제약(커스텀 SQL 함수 불가,
+트랜잭션 중첩 불가)은 [ADR-0002](docs/decisions/ADR-0002-shared-db-turso.md)에 적어 뒀습니다.
 
 ## 화면
 
@@ -188,23 +200,29 @@ npm run verify     # lint → typecheck → smoke 51항목
 ## 스택
 
 Next.js 16 · React 19 · TypeScript strict · Tailwind 4 · TanStack Table ·
-better-sqlite3 · bcryptjs(비밀번호 해시) + HMAC 서명 쿠키(`node:crypto`) · GitHub Actions CI
+libSQL(로컬 SQLite ↔ 원격 Turso 동일 드라이버) · bcryptjs(비밀번호 해시) + HMAC 서명 쿠키(`node:crypto`) · GitHub Actions CI
 
 ## 배포 · CI/CD
 
 - **CI** (GitHub Actions): push/PR 마다 `verify`(lint · typecheck · 스모크 51항목) → 프로덕션 `build`
 - **CD** (Vercel Git 연동): `main` push → 프로덕션 배포, PR → 프리뷰 URL 자동 발급
-- **로컬 실행에 필요한 환경변수는 없다.** 서버리스에서는 콜드스타트 때 메모리 DB에
-  시드를 즉석 생성한다(`src/lib/db/sqlite.ts`).
+- **로컬 실행에 필요한 환경변수는 없다.** 아무것도 설정하지 않으면 로컬 파일 DB를 쓰고,
+  첫 실행 때 스스로 시드한다(`src/lib/db/sqlite.ts`).
 - **`AUTH_SECRET`** — 세션 쿠키의 HMAC 서명 키. 미설정이면 저장소에 공개된 기본값을 쓰므로
   쿠키를 위조할 수 있다. 다만 **이 데모에서 위조로 더 얻을 수 있는 것은 없다** — 로그인 화면에
   [데모 계정으로 둘러보기] 버튼을 두어 누구나 들어오게 설계했고, 권한·역할 분리도 없어서
   모든 사용자가 같은 가상 데이터를 본다. **실사용자 인증이나 권한 분리를 붙이는 순간 이 키가
   유일한 방어선이 되므로**, 배포 환경에는 미리 32바이트 랜덤값을 넣어 둔다
   (`node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`).
-- **서버리스는 데이터가 영속되지 않는다** — 인스턴스별 독립 `:memory:` DB라 데모에서
-  만든 문서는 인스턴스 수명만큼만 유지된다
-  ([ADR-0001](docs/decisions/ADR-0001-portfolio-sqlite.md) 트레이드오프).
+- **`TURSO_DATABASE_URL` · `TURSO_AUTH_TOKEN`** — 배포본이 보는 **공유 DB**. 설정하면 모든
+  인스턴스가 같은 데이터를 보므로 **생성한 문서가 남는다**(미설정이면 인스턴스별 `:memory:` 로
+  떨어져 쓰기가 유지되지 않는다). 앱은 공유 DB를 자동 시드하지 않는다 — 시드·초기화는
+  `npm run turso:reset` 전담이다. 배경과 트레이드오프는
+  [ADR-0002](docs/decisions/ADR-0002-shared-db-turso.md).
+- **공유 DB는 매일 초기화된다** — 방문자가 모두 같은 데이터를 보므로, 데모 흔적이 쌓여
+  README 수치·스크린샷과 어긋나지 않도록 GitHub Actions 크론이 03:00(KST)에 원상복구하고
+  그 결과를 **화면이 쓰는 조회 경로로 재점검**한다(`.github/workflows/turso-reset.yml`).
+  저장소 시크릿에 위 두 값이 같은 이름으로 필요하다.
 
 ### 의존성을 바꿨다면
 

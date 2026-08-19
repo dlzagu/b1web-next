@@ -17,6 +17,11 @@ Service Layer 쓰기)에 붙여 진행했지만, 공개하려면 그 전제를 �
 데이터 계층을 **SQLite(better-sqlite3) + 결정적 가상 시드**로 교체하고, 쓰기 경로는
 **로컬 ERP 엔진**으로 대체한다. 화면·액션·컴포넌트 계층은 손대지 않는다.
 
+> 📌 **후속**: 드라이버는 [ADR-0002](ADR-0002-shared-db-turso.md) 에서 `better-sqlite3` → `libsql`
+> 로 교체했다(서버리스 쓰기 영속을 위한 원격 공유 DB 지원). 아래 설계는 그대로 유효하고,
+> 바뀐 것은 ① 커스텀 스칼라 함수를 SQL 재작성으로 옮긴 것 ② 트랜잭션 중첩을 SAVEPOINT 로
+> 명시한 것 둘뿐이다.
+
 ### 1. HANA 호환 계층 — 화면 쿼리를 고치지 않는다
 
 화면 30여 개가 HANA 문법(`SELECT TOP n`·`TO_VARCHAR`·`TO_DECIMAL`·`DAYS_BETWEEN`)으로

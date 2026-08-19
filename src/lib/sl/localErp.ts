@@ -15,7 +15,7 @@
  *    ("server-only" 미사용 — 시드 생성기·스모크 스크립트가 Next 밖(tsx)에서도 import 한다.
  *     클라이언트 유출 방지는 소비층 documents.ts 의 server-only 가 담당)
  */
-import { getDb, tableColumns, type DemoDb } from "@/lib/db/sqlite";
+import { getDb, runInTransaction, tableColumns, type DemoDb } from "@/lib/db/sqlite";
 
 // ── 엔티티 좌표 ──────────────────────────────────────────────
 interface EntityDef {
@@ -323,7 +323,7 @@ export function engineCreate(
     .get(h.CardCode) as { CardName: string } | undefined;
   if (!card) throw new Error(`거래처를 찾을 수 없습니다: ${h.CardCode}`);
 
-  const tx = db.transaction((): EngineCreated => {
+  const tx = (): EngineCreated => {
     const { docEntry, docNum } = nextIds(db, def.header);
     const docDate = h.DocDate ?? today();
     let docTotal = 0;
@@ -399,9 +399,9 @@ export function engineCreate(
       lines.map((l) => l.ItemCode),
     );
     return { DocEntry: docEntry, DocNum: docNum };
-  });
-  // immediate: 채번(MAX+1)을 읽기 전에 쓰기락을 잡는다 — 프로세스가 둘 이상이면 PK 충돌한다
-  return tx.immediate();
+  };
+  // 채번(MAX+1)을 읽기 전에 쓰기락을 잡는다 — 프로세스가 둘 이상이면 PK 충돌한다
+  return runInTransaction(db, tx);
 }
 
 /** 수정 (PATCH 전체 라인 교체 의미론 — 이월분 보존 검증 포함) */
@@ -423,7 +423,7 @@ export function engineUpdate(
   const def = entityDef(entity);
   if (!lines.length) throw new Error("문서 라인이 비어 있습니다.");
 
-  const tx = db.transaction(() => {
+  const tx = () => {
     const head = db
       .prepare(
         `SELECT "DocStatus", "CANCELED", "DocDate" FROM "${def.header}" WHERE "DocEntry" = ?`,
@@ -555,8 +555,8 @@ export function engineUpdate(
       ).run(v, docEntry);
     }
     recomputeCommitments(db, touchedItems);
-  });
-  tx.immediate();
+  };
+  runInTransaction(db, tx);
 }
 
 export interface EngineDrawLine {
@@ -580,7 +580,7 @@ export function engineCreateFromBase(
   const def = entityDef(entity);
   if (!lines.length) throw new Error("이월할 라인이 없습니다.");
 
-  const tx = db.transaction((): EngineCreated => {
+  const tx = (): EngineCreated => {
     const { docEntry, docNum } = nextIds(db, def.header);
     const docDate = h.DocDate ?? today();
     let docTotal = 0;
@@ -747,9 +747,9 @@ export function engineCreateFromBase(
 
     recomputeCommitments(db, touchedItems);
     return { DocEntry: docEntry, DocNum: docNum };
-  });
-  // immediate: 채번(MAX+1)을 읽기 전에 쓰기락을 잡는다 — 프로세스가 둘 이상이면 PK 충돌한다
-  return tx.immediate();
+  };
+  // 채번(MAX+1)을 읽기 전에 쓰기락을 잡는다 — 프로세스가 둘 이상이면 PK 충돌한다
+  return runInTransaction(db, tx);
 }
 
 /** 취소 — 후속 문서 가드, base 미결수량 복원, 재고 역분개 */
@@ -757,7 +757,7 @@ export function engineCancel(entity: string, docEntry: number): void {
   const db = getDb();
   const def = entityDef(entity);
 
-  const tx = db.transaction(() => {
+  const tx = () => {
     const head = db
       .prepare(`SELECT * FROM "${def.header}" WHERE "DocEntry" = ?`)
       .get(docEntry) as Record<string, unknown> | undefined;
@@ -850,8 +850,8 @@ export function engineCancel(entity: string, docEntry: number): void {
       });
     }
     recomputeCommitments(db, touchedItems);
-  });
-  tx.immediate();
+  };
+  runInTransaction(db, tx);
 }
 
 /** 엔진 헬스체크 — health 화면용 */

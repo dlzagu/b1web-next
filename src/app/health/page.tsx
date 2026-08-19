@@ -5,6 +5,7 @@
  */
 import { slHealthCheck } from "@/lib/sl/client";
 import { hanaHealthCheck } from "@/lib/db/hana";
+import { isSharedDb } from "@/lib/db/sqlite";
 import { Card, Badge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +61,8 @@ export default async function HealthPage() {
       </div>
 
       <p className="mt-6 text-xs text-muted">
-        연결 대상: 내장 데모 DB (SQLite) · 데이터는 전부 가상입니다
+        연결 대상: {isSharedDb() ? "공유 데모 DB (libSQL/Turso — 인스턴스 간 공유, 매일 초기화)" : "내장 데모 DB (SQLite 파일/메모리)"} ·
+        데이터는 전부 가상입니다
       </p>
     </main>
   );

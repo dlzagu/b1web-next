@@ -19,7 +19,15 @@ SAP B1 데이터 모델(표준 테이블·문서연결 규칙)을 따르고, 데
 - 📌 이터레이션(작업 단위)마다 git commit — 롤백 지점.
 
 ## 데이터 계층 (전환 후)
-- **조회**: `src/lib/db/hana.ts`(게이트웨이) → `src/lib/db/sqlite.ts`(HANA 호환 계층: TO_VARCHAR·TO_DECIMAL·DAYS_BETWEEN 커스텀 함수 + `SELECT TOP`→`LIMIT` 재작성).
+- **드라이버**: `libsql`(better-sqlite3 호환 **동기** API). 접속 대상은 `dbTarget()` 이 정한다 —
+  `TURSO_DATABASE_URL` 있으면 원격 공유 DB / `DATABASE_PATH` / Vercel 이면 `:memory:` / 그 외 로컬 파일.
+  ⚠️ **원격은 자동 시드하지 않는다** (`npm run turso:reset` 전담). ⚠️ 커넥션은 항상 `getDb()` 로 얻는다 —
+  엔진·시드가 전역 캐시된 커넥션을 다시 찾으므로, 캐시를 안 채우는 경로로 열면 "no such table" 이 난다.
+- **트랜잭션**: `runInTransaction(db, fn)` — libSQL 은 `BEGIN` 중첩을 거부하므로(better-sqlite3 는 자동
+  SAVEPOINT 였다) 이미 트랜잭션 안이면 SAVEPOINT 로 중첩한다. `db.transaction()` 직접 호출 금지.
+- **조회**: `src/lib/db/hana.ts`(게이트웨이) → `src/lib/db/sqlite.ts`(HANA 호환 계층).
+  TO_VARCHAR·TO_DECIMAL·DAYS_BETWEEN 은 **커스텀 함수가 아니라 SQL 재작성**이다
+  (libSQL 은 `db.function()` 이 not implemented). `SELECT TOP`→`LIMIT` 도 같은 재작성기.
   화면 쿼리는 **HANA 문법 그대로** 쓴다 — 어댑터가 흡수하므로 고치지 않는다.
 - **프로시저**: `src/lib/db/procImpl.ts` — `CF_STOCK`(Gubun W/J)을 결과셋 계약 그대로 TS 재구현.
   ⚠️ 계약상 수량 컬럼은 **콤마 포맷 문자열**이고 소계행은 `DOCENTRY=''` 다.
@@ -43,3 +51,5 @@ SAP B1 데이터 모델(표준 테이블·문서연결 규칙)을 따르고, 데
 
 ## 명령어
 - `npm run dev` / `npm run verify` / `npm run build` / `npm run smoke` / `npm run db:reset`
+- 공유 DB(원격): `npm run turso:reset`(삭제→재시드, 매일 크론) / `npm run turso:verify`(읽기 전용 점검)
+  ⛔ 스모크는 문서를 만들고 취소하므로 **공유 DB 에 돌리지 않는다** — 점검은 turso:verify 로.

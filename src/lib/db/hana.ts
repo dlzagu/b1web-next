@@ -53,6 +53,9 @@ function assertReadOnly(sql: string): void {
 /** `CALL "CF_XXX"(?,?,…)` 에서 프로시저명 추출 */
 const CALL_NAME_RE = /^CALL\s+"?([A-Za-z0-9_]+)"?\s*\(/i;
 
+/** 헬스체크 표기 — 'remote' 는 인스턴스 간 공유(쓰기가 남는다)라는 뜻이라 구분해 보여준다 */
+const MODE_LABEL = { memory: "메모리", file: "파일", remote: "공유 DB" } as const;
+
 // ── 조회 API ─────────────────────────────────────────────────
 /**
  * 읽기 전용 SQL 실행. SELECT/WITH/CALL(CF_)만 허용.
@@ -103,7 +106,7 @@ export async function hanaHealthCheck(): Promise<{
     );
     return {
       ok: true,
-      detail: `데모 DB 정상 (${dbMode() === "memory" ? "메모리" : "파일"} · 회사: ${row?.CompnyName ?? "?"} · 판매오더 ${docs?.n ?? 0}건)`,
+      detail: `데모 DB 정상 (${MODE_LABEL[dbMode()]} · 회사: ${row?.CompnyName ?? "?"} · 판매오더 ${docs?.n ?? 0}건)`,
     };
   } catch (e) {
     return { ok: false, detail: e instanceof Error ? e.message : String(e) };
