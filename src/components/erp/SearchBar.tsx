@@ -131,7 +131,7 @@ export function SearchBar({
               기본값
             </button>
           </div>
-          <div className="c4-scroll max-h-72 overflow-y-auto p-1.5">
+          <div className="b1w-scroll max-h-72 overflow-y-auto p-1.5">
             {visibleFields.map((f) => {
               const on = shown.includes(f.name);
               return (

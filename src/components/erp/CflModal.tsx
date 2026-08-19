@@ -122,7 +122,7 @@ export default function CflModal({
             placeholder="코드 또는 이름으로 검색…"
             className="mb-3"
           />
-          <div className="c4-scroll max-h-[50vh] overflow-y-auto">
+          <div className="b1w-scroll max-h-[50vh] overflow-y-auto">
             <DataTableClient
               headers={headers}
               data={gridData}

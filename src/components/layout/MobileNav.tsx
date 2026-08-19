@@ -91,7 +91,7 @@ export default function MobileNav() {
               role="dialog"
               aria-modal="true"
               aria-label="메뉴"
-              className="c4-scroll animate-drawer absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-border bg-surface px-3 py-4 shadow-card"
+              className="b1w-scroll animate-drawer absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-border bg-surface px-3 py-4 shadow-card"
             >
               <div className="mb-2 flex items-center justify-between px-2">
                 <span className="text-[13px] font-semibold text-foreground">메뉴</span>

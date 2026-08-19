@@ -413,7 +413,7 @@ export default function DataTableClient({
                       기본값
                     </button>
                   </div>
-                  <div className="c4-scroll max-h-72 overflow-y-auto p-1.5">
+                  <div className="b1w-scroll max-h-72 overflow-y-auto p-1.5">
                     {headers.map((h) => {
                       const on = columnVisibility[h.key] !== false;
                       return (
@@ -439,7 +439,7 @@ export default function DataTableClient({
       )}
       {/* 가시영역 내 스크롤 컨테이너 — maxHeight를 뷰포트에 맞춰(효과) 가로 스크롤바·합계가 화면 안에 들어옴.
           너비: 컬럼합이 좁으면 width:100%로 비율대로 펼쳐 화면을 꽉 채우고, 넓으면 minWidth로 가로 스크롤. */}
-      <div ref={scrollRef} className="c4-scroll overflow-auto rounded-card border border-border">
+      <div ref={scrollRef} className="b1w-scroll overflow-auto rounded-card border border-border">
         <table className="border-collapse text-sm" style={{ width: "100%", minWidth: totalWidth, tableLayout: "fixed" }}>
           {/* table-layout:fixed 는 '첫 행'으로 폭을 잡는다 — 그룹헤더(colSpan)가 첫 행이 되면 폭이 무너지므로
               colgroup 으로 컬럼 폭을 명시해 첫 행과 무관하게 고정한다. */}

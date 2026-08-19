@@ -116,7 +116,7 @@ export function FieldSet({
                   기본값
                 </button>
               </div>
-              <div className="c4-scroll max-h-72 overflow-y-auto p-1.5">
+              <div className="b1w-scroll max-h-72 overflow-y-auto p-1.5">
                 {fields.map((f) => {
                   const on = !hidden.has(f.key);
                   return (

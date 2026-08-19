@@ -116,7 +116,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
 /** 데스크톱 사이드바 — 모바일(md 미만)에서는 숨기고 헤더의 드로어(MobileNav)가 대신한다 */
 export default function Sidebar() {
   return (
-    <nav className="c4-scroll hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface px-3 py-4 md:flex">
+    <nav className="b1w-scroll hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface px-3 py-4 md:flex">
       <NavList />
     </nav>
   );

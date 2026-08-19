@@ -166,7 +166,7 @@ body {
 .animate-fade { animation: fadeIn 0.2s ease-out both; }
 
 /* Select 커스텀 chevron (Radix 도입 전 네이티브 유지) */
-.c4-select {
+.b1w-select {
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2345474d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
@@ -177,39 +177,39 @@ body {
 }
 
 /* 얇은 hover-reveal 스크롤바 (애플식) — 평소 투명, hover/스크롤 시 가는 라운드 썸.
- * 사이드바·본문 등 내부 스크롤 영역에 c4-scroll 클래스로 적용해 기본 스크롤바의 어색함 제거. */
-.c4-scroll {
+ * 사이드바·본문 등 내부 스크롤 영역에 b1w-scroll 클래스로 적용해 기본 스크롤바의 어색함 제거. */
+.b1w-scroll {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
-.c4-scroll:hover,
-.c4-scroll:focus-within {
+.b1w-scroll:hover,
+.b1w-scroll:focus-within {
   scrollbar-color: var(--border-strong) transparent;
 }
-.c4-scroll::-webkit-scrollbar {
+.b1w-scroll::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-.c4-scroll::-webkit-scrollbar-track {
+.b1w-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
-.c4-scroll::-webkit-scrollbar-thumb {
+.b1w-scroll::-webkit-scrollbar-thumb {
   background-color: transparent;
   border: 2px solid transparent;
   border-radius: 9999px;
   background-clip: padding-box;
 }
-.c4-scroll:hover::-webkit-scrollbar-thumb {
+.b1w-scroll:hover::-webkit-scrollbar-thumb {
   background-color: var(--border-strong);
   background-clip: padding-box;
 }
-.c4-scroll::-webkit-scrollbar-thumb:hover {
+.b1w-scroll::-webkit-scrollbar-thumb:hover {
   background-color: var(--muted);
   background-clip: padding-box;
 }
 
 /* 조회 로딩바 — SearchPanel 상단 인디터미네이트 바 (조회 진행 표시) */
-.c4-loading-bar {
+.b1w-loading-bar {
   position: absolute;
   top: 0;
   left: 0;
@@ -217,9 +217,32 @@ body {
   width: 35%;
   border-radius: 2px;
   background: var(--primary);
-  animation: c4bar 1.1s ease-in-out infinite;
+  animation: b1w-bar-slide 1.1s ease-in-out infinite;
 }
-@keyframes c4bar {
+@keyframes b1w-bar-slide {
   0% { left: -35%; }
   100% { left: 100%; }
+}
+
+/* 전역 상단 로딩바 — 뷰포트 최상단에 걸린다.
+   로그인처럼 **화면 전체가 그대로 멈춰 있는** 대기에서 쓴다. 버튼 라벨만 바꾸면
+   눈에 안 들어온다(사용자 피드백: "로딩바가 안 나온다"). 공유 DB 로 바꾼 뒤
+   인증+대시보드 렌더까지 수 초가 걸릴 수 있어 확실한 신호가 필요하다. */
+.b1w-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  z-index: 60;
+}
+.b1w-topbar > span {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 35%;
+  background: var(--primary);
+  animation: b1w-bar-slide 1.1s ease-in-out infinite;
 }

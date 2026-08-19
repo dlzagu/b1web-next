@@ -1,11 +1,33 @@
 "use client";
 
 import { useActionState } from "react";
+import { createPortal } from "react-dom";
 import { useFormStatus } from "react-dom";
 import { demoLoginAction, loginAction, type LoginState } from "./actions";
 import { Button, Input, Field, Card } from "@/components/ui";
 
 const initial: LoginState = {};
+
+/**
+ * 뷰포트 최상단 로딩바 — 대기 중임을 화면 전체에서 알린다.
+ *
+ * 🔴 버튼 라벨만 바꾸면 안 보인다. 로그인은 인증 → 세션 발급 → **대시보드 렌더**까지
+ *    끝나야 화면이 바뀌는데, 공유 DB(원격) 전환 뒤 그 대기가 수 초가 됐다. 그 동안
+ *    화면이 통째로 정지해 있어 "눌렸는지도 모르겠다"가 된다(사용자 피드백).
+ * 🔴 body 로 포털한다 — fixed 요소는 조상에 transform/filter 가 걸리면 뷰포트가 아니라
+ *    그 조상 기준으로 갇힌다. 이 프로젝트에서 모바일 드로어가 실제로 그렇게 깨졌었다.
+ *    pending 은 클릭 이후에만 true 라 서버 렌더 시점엔 항상 null → 하이드레이션 불일치 없음.
+ */
+function TopLoadingBar() {
+  const { pending } = useFormStatus();
+  if (!pending || typeof document === "undefined") return null;
+  return createPortal(
+    <div className="b1w-topbar" role="progressbar" aria-label="처리 중">
+      <span />
+    </div>,
+    document.body,
+  );
+}
 
 /** 진행 중 표시 — 라벨을 바꾸고 스피너를 붙인다 */
 function Spinner() {
@@ -28,16 +50,25 @@ function Spinner() {
 function DemoButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant="outline" disabled={pending} className="w-full">
-      {pending ? (
-        <>
-          <Spinner />
-          데모 데이터 불러오는 중…
-        </>
-      ) : (
-        "데모 계정으로 둘러보기"
+    <>
+      <TopLoadingBar />
+      <Button type="submit" variant="outline" disabled={pending} className="w-full">
+        {pending ? (
+          <>
+            <Spinner />
+            데모 데이터 불러오는 중…
+          </>
+        ) : (
+          "데모 계정으로 둘러보기"
+        )}
+      </Button>
+      {pending && (
+        // 처음 접속이면 서버 기동 + 공유 DB 조회가 겹쳐 수 초가 걸린다. 왜 기다리는지 알려준다.
+        <p className="mt-2 text-center text-[11px] text-faint">
+          첫 접속은 서버가 깨어나느라 몇 초 걸릴 수 있습니다
+        </p>
       )}
-    </Button>
+    </>
   );
 }
 
@@ -46,6 +77,7 @@ export default function LoginForm() {
   return (
     <Card className="shadow-sm">
       <form action={formAction} className="flex flex-col gap-4 p-6 pb-4">
+        <TopLoadingBar />
         <Field label="아이디">
           <Input name="username" type="text" autoComplete="username" autoFocus />
         </Field>

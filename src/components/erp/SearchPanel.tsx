@@ -40,7 +40,7 @@ export function SearchPanel({
       onSubmit={onSubmit}
       className="relative mb-4 overflow-hidden rounded-card bg-surface-container p-4"
     >
-      {pending && <span className="c4-loading-bar" aria-hidden />}
+      {pending && <span className="b1w-loading-bar" aria-hidden />}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
       <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
         <Button type="submit" size="sm" disabled={pending}>
