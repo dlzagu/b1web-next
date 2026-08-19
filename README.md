@@ -32,7 +32,7 @@ npm run dev        # http://localhost:3000
 
 ```bash
 npm run verify     # lint → typecheck → smoke (완료 판정 기준)
-npm run smoke      # 데모 ERP 스모크 51항목 (아래 '검증' 참조)
+npm run smoke      # 데모 ERP 스모크 52항목 (아래 '검증' 참조)
 npm run db:reset   # 로컬 데모 DB 삭제 → 다음 실행 때 재시드
 npm run shots      # README 스크린샷 재생성 (설치된 Chrome/Edge 사용, dev 서버 필요)
 ```
@@ -169,10 +169,10 @@ npm run turso:verify   # 공유 DB 점검 (읽기 전용 — 화면이 쓰는 �
 ERP는 화면이 그려지는 것과 **숫자가 맞는 것이 별개**입니다. 그래서 도메인 등식을 테스트로 고정했습니다.
 
 ```bash
-npm run verify     # lint → typecheck → smoke 51항목
+npm run verify     # lint → typecheck → smoke 52항목
 ```
 
-`npm run smoke`(`scripts/erp-smoke.ts`)는 **메모리 DB에 새로 시드**한 뒤 10개 영역 51항목을 검사합니다.
+`npm run smoke`(`scripts/erp-smoke.ts`)는 **메모리 DB에 새로 시드**한 뒤 10개 영역 52항목을 검사합니다.
 
 | 영역 | 무엇을 지키나 |
 |---|---|
@@ -184,7 +184,7 @@ npm run verify     # lint → typecheck → smoke 51항목
 | 6. 재고 정합 | `OITM.OnHand = OITW 합`, 문서연결 체인에 끊긴 링크 0 |
 | 7. 재고 입출고 대장 대사 | **기말재고 = OITW.OnHand** (취소 역분개가 섞인 상태로) · 생성+취소 왕복이 어느 기간컷에서도 no-op |
 | 8. 수주 진행 현황 롤업 | 납품수량 두 계산방식 일치 · **납품 − 미청구 = 송장** · 진행단계 필터가 완전 분할(겹침·누락 0) |
-| 9. 매입 리포트 대사 | **문서를 실제로 취소시킨 뒤** 공급처축·월축이 같은 금액만큼 함께 줄어드는가 · 재고 피벗 합 = 원본 합 |
+| 9. 매입 리포트 대사 | **문서를 실제로 취소시킨 뒤** 공급처축·월축이 같은 금액만큼 함께 줄어드는가 · **라인 합(PCH1) = 헤더 합(OPCH)** · 재고 피벗 합 = 원본 합 |
 | 10. 매출 피벗 대사 | 화면이 쓰는 SQL 을 그대로 실행해 **라인 합(INV1) = 헤더 합(OINV)** · A/R송장 취소가 양쪽에서 동일 반영 · 표시 상한 미도달 |
 
 **발견한 결함은 회귀 테스트로 고정합니다.** 예를 들어 문서 취소 시 재고 역분개를 *취소일* 로 기록하면,
@@ -205,7 +205,7 @@ libSQL(로컬 SQLite ↔ 원격 Turso 동일 드라이버) · bcryptjs(비밀번
 
 ## 배포 · CI/CD
 
-- **CI** (GitHub Actions): push/PR 마다 `verify`(lint · typecheck · 스모크 51항목) → 프로덕션 `build`
+- **CI** (GitHub Actions): push/PR 마다 `verify`(lint · typecheck · 스모크 52항목) → 프로덕션 `build`
 - **CD** (Vercel Git 연동): `main` push → 프로덕션 배포, PR → 프리뷰 URL 자동 발급
 - **로컬 실행에 필요한 환경변수는 없다.** 아무것도 설정하지 않으면 로컬 파일 DB를 쓰고,
   첫 실행 때 스스로 시드한다(`src/lib/db/sqlite.ts`).

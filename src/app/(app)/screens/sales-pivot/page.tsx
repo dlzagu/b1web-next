@@ -134,20 +134,21 @@ export default async function SalesPivotPage({
       })),
     },
     { name: "sCardCode", label: "거래처", kind: "cfl", cflType: "Customer" },
-    ...(tab === "item"
-      ? ([
-          {
-            name: "sItemGrp",
-            label: "품목그룹",
-            kind: "select",
-            options: [
-              { value: "", label: "전체" },
-              ...groups.map((g) => ({ value: String(g.ItmsGrpCod), label: g.ItmsGrpNam })),
-            ],
-          },
-          { name: "sItemCd", label: "품목", kind: "cfl", cflType: "Item" },
-        ] as SearchFieldDef[])
-      : []),
+    // 🔴 품목 조건을 **두 탭 모두**에 둔다. 예전엔 품목별 탭에만 두고 거래처별 탭에서는
+    //    무시했는데, 탭을 옮기면 필터가 URL 에 남은 채 화면엔 안 보이고 집계에서만 빠져
+    //    총합이 말없이 튀었다(9,891,200 → 15,803,260). 거래처별 탭에서도 적용하면
+    //    "이 품목그룹을 산 거래처별 매출"이라는 자연스러운 교차 조회가 되고,
+    //    조건이 화면에 보이므로 숫자가 왜 그런지 사용자가 안다.
+    {
+      name: "sItemGrp",
+      label: "품목그룹",
+      kind: "select",
+      options: [
+        { value: "", label: "전체" },
+        ...groups.map((g) => ({ value: String(g.ItmsGrpCod), label: g.ItmsGrpNam })),
+      ],
+    },
+    { name: "sItemCd", label: "품목", kind: "cfl", cflType: "Item" },
     { name: "tab", label: "구분", kind: "hidden" },
   ];
 
@@ -184,7 +185,9 @@ export default async function SalesPivotPage({
   }
   columns.push({
     key: "RowTotal",
-    header: "연간 합계",
+    // 🔴 기준월이 12월이 아니면 이 열은 '연간'이 아니라 1~기준월 부분합이다.
+    //    라벨을 고정하면 3월 조회에서 1~3월 합이 '연간 합계'로 읽혀 사용자가 오해한다.
+    header: sMonth === 12 ? "연간 합계" : `1~${sMonth}월 합계`,
     align: "right",
     width: "140px",
     total: "sum",

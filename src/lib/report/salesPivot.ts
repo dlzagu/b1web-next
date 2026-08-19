@@ -70,11 +70,14 @@ export function buildSalesPivotQuery(o: {
     where.push(`h."CardCode" = ?`);
     params.push(o.sCardCode);
   }
-  if (tab === "item" && o.sItemGrp) {
+  // 🔴 품목 조건은 **두 탭 모두** 적용한다. 거래처별 탭에서만 무시하면, 탭을 옮겼을 때
+  //    필터가 URL 에 남은 채 집계에서만 빠져 총합이 조용히 바뀐다(적대적 검증 지적).
+  //    두 탭 다 INV1 을 조인하므로 같은 술어가 그대로 성립한다.
+  if (o.sItemGrp) {
     where.push(`l."ItemCode" IN (SELECT "ItemCode" FROM "OITM" WHERE "ItmsGrpCod" = ?)`);
     params.push(Number(o.sItemGrp));
   }
-  if (tab === "item" && o.sItemCd) {
+  if (o.sItemCd) {
     where.push(`l."ItemCode" = ?`);
     params.push(o.sItemCd);
   }

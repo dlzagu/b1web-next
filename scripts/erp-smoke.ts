@@ -577,9 +577,22 @@ ${CHAIN_JOINS}${where ? ` AND ${where}` : ""}`,
       Math.abs(before.month - after.month - Number(victim.DocTotal)) < 0.001,
     `−${Number(victim.DocTotal).toLocaleString()}`,
   );
+  // 🔴 '공급처축 = 월축' 은 같은 모집단을 다르게 GROUP BY 한 것뿐이라 **항등식**이다.
+  //    모집단이 0건이어도, 금액을 통째로 망가뜨려도 통과한다(적대적 검증 지적).
+  //    레벨을 가로지르는 등식으로 바꾼다 — 좌변 라인(PCH1.GTotal), 우변 헤더(OPCH.DocTotal).
+  const apLineSum = await query<{ S: number }>(
+    `SELECT SUM(l."GTotal") AS "S" FROM "PCH1" l
+       JOIN "OPCH" h ON h."DocEntry" = l."DocEntry"
+      WHERE h."CANCELED" = 'N'`,
+  );
   check(
-    "매입 분석 축간 총합 일치 (취소 발생 후)",
-    Math.abs(after.vendor - after.month) < 0.001,
+    "매입 라인 합(PCH1) = 헤더 합(OPCH) — 취소 반영 후",
+    Math.abs(Number(apLineSum[0]?.S ?? 0) - after.vendor) < 0.001,
+    `${Number(apLineSum[0]?.S ?? 0).toLocaleString()} = ${after.vendor.toLocaleString()}`,
+  );
+  check(
+    "매입 모집단이 비어 있지 않음 (등식이 0=0 으로 통과하는 것 방지)",
+    after.vendor > 0,
     `${after.vendor.toLocaleString()}`,
   );
 
