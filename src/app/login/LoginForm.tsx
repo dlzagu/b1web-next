@@ -1,10 +1,45 @@
 "use client";
 
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { demoLoginAction, loginAction, type LoginState } from "./actions";
 import { Button, Input, Field, Card } from "@/components/ui";
 
 const initial: LoginState = {};
+
+/** 진행 중 표시 — 라벨을 바꾸고 스피너를 붙인다 */
+function Spinner() {
+  return (
+    <span
+      aria-hidden
+      className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-r-transparent align-[-2px] opacity-70"
+    />
+  );
+}
+
+/**
+ * 데모 로그인 버튼 — **form 의 자식**이라야 useFormStatus 가 그 form 의 상태를 읽는다.
+ *
+ * 🔴 여기에 진행 표시가 없으면 버튼을 눌러도 화면이 그대로다. 인증(bcrypt) + 세션 발급 +
+ *    대시보드 렌더가 전부 끝나야 화면이 바뀌는데, 공유 DB(원격) 전환 뒤로는 쿼리마다
+ *    네트워크 왕복이 붙어 그 침묵이 눈에 띄게 길어졌다(사용자 피드백). pending 은 서버
+ *    액션이 끝난 뒤 **리다이렉트 내비게이션이 완료될 때까지** 유지되므로 공백 없이 이어진다.
+ */
+function DemoButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" variant="outline" disabled={pending} className="w-full">
+      {pending ? (
+        <>
+          <Spinner />
+          데모 데이터 불러오는 중…
+        </>
+      ) : (
+        "데모 계정으로 둘러보기"
+      )}
+    </Button>
+  );
+}
 
 export default function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initial);
@@ -19,7 +54,14 @@ export default function LoginForm() {
         </Field>
         {state.error && <p className="text-sm text-danger">{state.error}</p>}
         <Button type="submit" disabled={pending} className="mt-2 w-full">
-          {pending ? "로그인 중…" : "로그인"}
+          {pending ? (
+            <>
+              <Spinner />
+              로그인 중…
+            </>
+          ) : (
+            "로그인"
+          )}
         </Button>
       </form>
 
@@ -31,9 +73,7 @@ export default function LoginForm() {
           <span className="h-px flex-1 bg-border" />
         </div>
         <form action={demoLoginAction}>
-          <Button type="submit" variant="outline" className="w-full">
-            데모 계정으로 둘러보기
-          </Button>
+          <DemoButton />
         </form>
         <p className="mt-3 text-center text-[11px] leading-relaxed text-faint">
           직접 입력하려면 <span className="font-medium text-muted">demo</span> /{" "}

@@ -135,18 +135,19 @@ async function purchaseKpi(): Promise<Kpi> {
 // ── 미지급금 (OCRD 공급처 원장잔액 — 미수금의 대칭 지표) ────────
 // SAP B1 부호 관례: 공급처(S)에 갚을 채무는 Balance<0 으로 저장 → -Balance 로 양수화.
 async function payablesKpi(): Promise<Kpi> {
-  const s = await queryOne<{ Total: unknown; Cnt: unknown }>(
-    `SELECT SUM(CASE WHEN "Balance"<0 THEN -"Balance" ELSE 0 END) AS "Total",
-            COUNT(CASE WHEN "Balance"<0 THEN 1 END) AS "Cnt"
-     FROM "OCRD" WHERE "CardType"='S'`,
-  );
-  const tops = await query<{ Bal: unknown }>(
-    `SELECT -"Balance" AS "Bal" FROM "OCRD"
-     WHERE "CardType"='S' AND "Balance"<0 ORDER BY "Balance" ASC LIMIT 7`,
-  );
-  const openAp = await queryOne<{ OpenCnt: unknown }>(
-    `SELECT COUNT(*) AS "OpenCnt" FROM "OPCH" WHERE "DocStatus"='O'`,
-  );
+  // 세 쿼리는 서로 독립 — 공유 DB 에서는 순차로 두면 왕복이 3배가 된다
+  const [s, tops, openAp] = await Promise.all([
+    queryOne<{ Total: unknown; Cnt: unknown }>(
+      `SELECT SUM(CASE WHEN "Balance"<0 THEN -"Balance" ELSE 0 END) AS "Total",
+              COUNT(CASE WHEN "Balance"<0 THEN 1 END) AS "Cnt"
+       FROM "OCRD" WHERE "CardType"='S'`,
+    ),
+    query<{ Bal: unknown }>(
+      `SELECT -"Balance" AS "Bal" FROM "OCRD"
+       WHERE "CardType"='S' AND "Balance"<0 ORDER BY "Balance" ASC LIMIT 7`,
+    ),
+    queryOne<{ OpenCnt: unknown }>(`SELECT COUNT(*) AS "OpenCnt" FROM "OPCH" WHERE "DocStatus"='O'`),
+  ]);
   const total = num(s?.Total);
   const cnt = num(s?.Cnt);
   const { value, unit } = compactWon(total);
@@ -167,17 +168,20 @@ async function payablesKpi(): Promise<Kpi> {
 
 // ── 미수금 (OCRD.Balance + 미결 OINV) ─────────────────────────
 async function receivablesKpi(): Promise<Kpi> {
-  const s = await queryOne<{ Total: unknown; Cnt: unknown }>(
-    `SELECT SUM("Balance") AS "Total", COUNT(*) AS "Cnt" FROM "OCRD" WHERE "CardType"='C' AND "Balance">0`,
-  );
-  const tops = await query<{ Balance: unknown }>(
-    `SELECT "Balance" FROM "OCRD" WHERE "CardType"='C' AND "Balance">0 ORDER BY "Balance" DESC LIMIT 7`,
-  );
-  const open = await queryOne<{ OpenCnt: unknown; OverdueCnt: unknown }>(
-    `SELECT COUNT(*) AS "OpenCnt",
-       SUM(CASE WHEN DAYS_BETWEEN("DocDueDate", CURRENT_DATE) > 30 THEN 1 ELSE 0 END) AS "OverdueCnt"
-     FROM "OINV" WHERE "DocStatus"='O'`,
-  );
+  // 세 쿼리는 서로 독립 — 병렬로 던진다(공유 DB 에서 왕복 3 → 1)
+  const [s, tops, open] = await Promise.all([
+    queryOne<{ Total: unknown; Cnt: unknown }>(
+      `SELECT SUM("Balance") AS "Total", COUNT(*) AS "Cnt" FROM "OCRD" WHERE "CardType"='C' AND "Balance">0`,
+    ),
+    query<{ Balance: unknown }>(
+      `SELECT "Balance" FROM "OCRD" WHERE "CardType"='C' AND "Balance">0 ORDER BY "Balance" DESC LIMIT 7`,
+    ),
+    queryOne<{ OpenCnt: unknown; OverdueCnt: unknown }>(
+      `SELECT COUNT(*) AS "OpenCnt",
+         SUM(CASE WHEN DAYS_BETWEEN("DocDueDate", CURRENT_DATE) > 30 THEN 1 ELSE 0 END) AS "OverdueCnt"
+       FROM "OINV" WHERE "DocStatus"='O'`,
+    ),
+  ]);
   const total = num(s?.Total);
   const cnt = num(s?.Cnt);
   const { value, unit } = compactWon(total);
@@ -268,22 +272,22 @@ async function salesHighlights(): Promise<{
     const ym = latest?.YM ? String(latest.YM) : "";
     if (!ym) return empty;
 
-    // 매출 상위 거래처 TOP5 (OINV 헤더 · 해당월 · 취소 제외)
-    const byCustomer = await query<{ CardCode: unknown; CardName: unknown; Total: unknown }>(
+    // 상위 거래처·상위 품목은 서로 독립 — 기준월(ym)만 공유하므로 병렬로 던진다
+    const [byCustomer, byItem] = await Promise.all([
+      query<{ CardCode: unknown; CardName: unknown; Total: unknown }>(
       `SELECT TOP 5 "CardCode", MAX("CardName") AS "CardName", SUM("DocTotal") AS "Total"
        FROM "OINV" WHERE "CANCELED"='N' AND TO_VARCHAR("DocDate",'YYYY-MM')=?
-       GROUP BY "CardCode" ORDER BY SUM("DocTotal") DESC`,
-      [ym],
-    );
-
-    // 매출 상위 품목 TOP5 (INV1 라인 JOIN OINV · 해당월)
-    const byItem = await query<{ ItemCode: unknown; ItemName: unknown; Total: unknown }>(
+         GROUP BY "CardCode" ORDER BY SUM("DocTotal") DESC`,
+        [ym],
+      ),
+      query<{ ItemCode: unknown; ItemName: unknown; Total: unknown }>(
       `SELECT TOP 5 L."ItemCode", MAX(L."Dscription") AS "ItemName", SUM(L."LineTotal") AS "Total"
        FROM "INV1" L JOIN "OINV" H ON L."DocEntry"=H."DocEntry"
        WHERE H."CANCELED"='N' AND TO_VARCHAR(H."DocDate",'YYYY-MM')=?
-       GROUP BY L."ItemCode" ORDER BY SUM(L."LineTotal") DESC`,
-      [ym],
-    );
+         GROUP BY L."ItemCode" ORDER BY SUM(L."LineTotal") DESC`,
+        [ym],
+      ),
+    ]);
 
     return {
       month: ym,
